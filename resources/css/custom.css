@@ -1,0 +1,155 @@
+body{
+    background-color: #003B7B;
+    font-size: small;
+}
+aside{
+    position: fixed; 
+    height: 95vh; 
+    width: 200px;
+}
+
+.barra-navegacion{
+    background-color: #003B7B; 
+    height: 100vh; 
+    position: sticky; 
+    top: 0;
+}
+
+.sidebar-menu {
+    padding-top: 1rem !important;
+}
+/* Icono dentro del dropdown */
+.sidebar-menu .dropdown-toggle .micon {
+    color: #003B7B !important;
+}
+/* Efecto hover y apertura de menú */
+.sidebar-menu .dropdown-toggle:hover,
+.sidebar-menu .show > .dropdown-toggle {
+    background: none !important;
+}
+.sidebar-menu .dropdown-toggle:hover .micon,
+.sidebar-menu .show > .dropdown-toggle .micon {
+    background-color: #25AFDB !important;
+    color: white !important;
+    border-radius: 50% !important;
+    padding: 5px !important;
+    transition: all 0.3s ease !important;
+}
+ul {
+    list-style-type: none;
+    padding: 0;
+}
+.dropdown-toggle::after {
+    display: none !important;
+}
+.page-header {
+    background-image: url('/resources/images/571.png');
+    background-size: cover !important;
+    background-position: center top !important;
+    background-repeat: no-repeat !important;
+    height: 120px;
+    margin-bottom: 20px;
+}
+.page-header ol {
+    display: flex !important;
+    align-items: center !important;
+}
+.btn-primary {
+    background-color: #25AFDB !important;
+    border-color: #25AFDB !important;
+}
+tbody{
+    height: 300px;
+}
+
+.general-container {
+                background-color: transparent !important;
+                padding: 0px !important;
+            }
+
+            .btn-secondary {
+                background-color: #15baee !important;
+                border-color: #15baee !important;
+            }
+
+            .btn-secondary:hover {
+                background-color: #15baee !important;
+            }
+
+            .color-header-table {
+                background-color: #004EA4 !important;
+                color: #fff !important;
+            }
+
+            .dw {
+                color: white !important;
+            }
+
+
+            .table-plus::before {
+                color: #ffff !important;
+                font-size: medium !important;
+            }
+
+            .table-plus::after {
+                color: #ffff !important;
+                font-size: medium !important;
+            }
+
+
+            .data-table-usuario thead tr th:first-child {
+                border-top-left-radius: 10px;
+                border-bottom-left-radius: 10px;
+            }
+
+            .data-table-usuario thead tr th:last-child {
+                border-top-right-radius: 10px !important;
+                border-bottom-right-radius: 10px !important;
+            }
+
+
+            .contact-directory-box .contact-name,
+            .contact-directory-box .contact-skill {
+                padding-bottom: 25px;
+            }
+
+
+.dropdown-item:hover{
+    background-color: #cdcecf !important;
+}
+
+tbody{
+    height: 20px;
+}
+
+td{
+    vertical-align: middle;
+    height: 100px;
+}
+
+.img-perfil{
+    width: 50px;
+    object-fit: cover;
+    height: 50px;
+}
+
+.img-perfil-nav{
+    width: 25px; 
+    height: 25px; 
+    object-fit: cover;
+}
+
+
+.pre-loader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: white;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
