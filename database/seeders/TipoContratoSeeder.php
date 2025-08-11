@@ -17,32 +17,10 @@ class TipoContratoSeeder extends Seeder
             [
                 'nombre' => 'Equipo dedicado',
                 'descripcion' => 'Contrato para asignación de equipo exclusivo al cliente',
-                'id_cliente' => 4
             ],
             [
                 'nombre' => 'Servicios',
                 'descripcion' => 'Contrato para prestación de servicios variados',
-                'id_cliente' => 4
-            ],
-            [
-                'nombre' => 'Equipo dedicado',
-                'descripcion' => 'Contrato para asignación de equipo exclusivo al cliente',
-                'id_cliente' => 6
-            ],
-            [
-                'nombre' => 'Servicios',
-                'descripcion' => 'Contrato para prestación de servicios variados',
-                'id_cliente' => 7
-            ],
-            [
-                'nombre' => 'Equipo dedicado',
-                'descripcion' => 'Contrato para asignación de equipo exclusivo al cliente',
-                'id_cliente' => 8
-            ],
-            [
-                'nombre' => 'Servicios',
-                'descripcion' => 'Contrato para prestación de servicios variados',
-                'id_cliente' => 7
             ]
         ];
 

@@ -8,7 +8,13 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ModalidadController;
+use App\Http\Controllers\FaseServicioController;
+use App\Http\Controllers\TipoServicioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
+use App\Http\Controllers\FasesDePlaneacionDeServiciosController;
+
+
 Route::get('/', function () {
     return view('auth.login');
 });
@@ -17,6 +23,7 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
 
 //__/ÁREAS/__//
 
@@ -148,6 +155,26 @@ Route::middleware(['auth'])->get('/clientes', [ClienteController::class, 'index'
 
 //Eliminar cliente
 Route::middleware(['auth'])->delete('/clientes/{cliente}', [ClienteController::class, 'destroy'])->name('clientes.destroy');
+
+
+//__/HERRAMIENTAS/__//
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::get('/modalidades', [ModalidadController::class, 'index']);
+
+    Route::get('/tipos-servicio', [TipoServicioController::class, 'index']);
+    Route::post('/tipos-servicio', [TipoServicioController::class, 'store']);
+    Route::put('/tipos-servicio/{tipo_servicio}', [TipoServicioController::class, 'update'])->whereNumber('tipo_servicio');
+    Route::delete('/tipos-servicio/{tipo_servicio}', [TipoServicioController::class, 'destroy'])->whereNumber('tipo_servicio');
+
+    Route::get('/fases-servicio', [FaseServicioController::class, 'index']);
+    Route::post('/fases-servicio', [FaseServicioController::class, 'store']);
+    Route::put('/fases-servicio/{fase}', [FaseServicioController::class, 'update'])->whereNumber('fase');
+    Route::delete('/fases-servicio/{fase}', [FaseServicioController::class, 'destroy'])->whereNumber('fase');
+});
+
+Route::get('/herramientas', fn () => view('herramientas.index'))
+    ->middleware(['auth', 'verified'])
+    ->name('herramientas.index');
 
 
 //ERRORS VIEWS
