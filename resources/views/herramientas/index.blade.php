@@ -22,13 +22,15 @@
             <div class="mb-3">
                 <label class="form-label" for="nombre_tipo_servicio">Nombre del tipo de servicio <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="nombre_tipo_servicio" placeholder="Nombre del tipo de servicio" required>
+                <small class="text-muted">Ej: Creación de parrilla, SEO, Pauta digital.</small>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="descripcion_tipo_servicio">Descripción del tipo de servicio:</label>
                 <input type="text" class="form-control" id="descripcion_tipo_servicio" placeholder="Descripción del tipo de servicio">
+                <small class="text-muted">Ej: Optimización para motores de búsqueda.</small>
             </div>
             <div class="mb-3">
-                <button type="button" class="btn btn-primary" id="guardar_tipo_servicio">Guardar tipo de servicio</button>
+                <button type="button" class="btn btn-primary" id="guardar_tipo_servicio">Crear tipo de servicio</button>
             </div>
         </div>
 
@@ -48,10 +50,12 @@
             <div class="mb-3">
                 <label class="form-label" for="nombre_fase_servicio">Nombre de la fase de servicio <span class="text-danger">*</span></label>
                 <input type="text" class="form-control" id="nombre_fase_servicio" placeholder="Nombre de la fase de servicio" required>
+                <small class="text-muted">Ej: Concepto creativo / tendencia, Conceptualización parrilla.</small>
             </div>
             <div class="mb-3">
                 <label class="form-label" for="descripcion_fase_servicio">Descripción de la fase de servicio:</label>
                 <input type="text" class="form-control" id="descripcion_fase_servicio" placeholder="Descripción de la fase de servicio">
+                <small class="text-muted">Ej: Herramienta estratégica que organiza y planifica la publicación de contenidos.</small>
             </div>
             <div class="mb-3">
                 <button type="button" class="btn btn-primary" id="guardar_fase_servicio">Guardar fase de servicio</button>
@@ -61,13 +65,17 @@
 
     {{--  Tabla de fases de servicio --}}
     <h4>Fases de servicio registradas</h4>
+    <p class="text-muted">Aquí puedes ver, buscar y editar las fases de servicio registradas.</p>
+
+    {{--  Contenedor de fases de servicio --}}
     {{--  Filtros de búsqueda --}}
+    
     <div class="row g-2 align-items-center mb-3 justify-content-end">
         <div class="col-md-8 d-flex justify-content-end">
             <input type="text" id="buscarModalidad" class="form-control me-2" placeholder="Buscar modalidad...">
             <input type="text" id="buscarTipoDeServicio" class="form-control me-2" placeholder="Buscar tipo de servicio...">
             <input type="text" id="buscarFaseDeServicio" class="form-control me-2" placeholder="Buscar fase de servicio...">
-            <button type="submit" id="btnBuscar" class="btn btn-primary me-1">Buscar</button>
+            <button type="submit" id="btnBuscar" class="btn btn-primary me-1">Filtrar</button>
             <button type="submit" id="btnLimpiar" class="btn btn-primary">Limpiar</button>
         </div>
     </div>

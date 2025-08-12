@@ -23,9 +23,6 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
-    
-    // Definir la tabla asociada al modelo
-    protected $table = 'users';
 
     // Definir los campos que se pueden asignar masivamente
     protected $fillable = [

@@ -22,6 +22,8 @@ class StoreUserRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Define la validación para el registro de un nuevo usuario
+        // Asegúrate de que los campos coincidan con el modelo User
         return [
             'foto_perfil' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,svg','max:2048'],
             'name' => ['required', 'string', 'max:255'],

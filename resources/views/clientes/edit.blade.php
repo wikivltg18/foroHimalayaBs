@@ -9,11 +9,11 @@
 
     <x-slot name="slot">
         <div class="row">
-            <!-- Columna izquierda: Formulario -->
+            {{-- Columna izquierda: Formulario --}}
             <div class="col-md-6">
                 <form action="{{ route('clientes.update', $cliente->id) }}" method="POST" enctype="multipart/form-data">
                     @csrf
-                    @method('PUT')  <!-- Necesario para PUT -->
+                    @method('PUT')  {{-- Necesario para PUT --}}
 
                     <div class="row">
                         {{-- Logo cliente --}}
@@ -23,7 +23,7 @@
                             <small class="text-muted">Foto de referencia del cliente.</small>
                             @error('logo') <div class="text-warning">{{ $message }}</div> @enderror
 
-                            <!-- Mostrar el logo si ya está asociado -->
+                            {{-- Mostrar el logo si ya está asociado --}}
                             @if($cliente->logo)
                                 <img src="{{ asset('storage/' . $cliente->logo) }}" alt="Logo del cliente" class="mt-2" style="max-width: 100px;">
                             @endif

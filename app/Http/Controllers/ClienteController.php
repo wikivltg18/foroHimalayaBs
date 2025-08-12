@@ -58,13 +58,14 @@ public function index(Request $request)
 
     public function store(Request $request)
     {
-        // Validación de los datos
+
+    // Validación de los datos
     $request->validate([
         'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        'nombre' => 'required|string|max:150',
+        'nombre' => 'required|string|max:255',
         'correo_electronico' => 'required|email|max:255',
         'telefono' => 'required|string|max:50',
-        'sitio_web' => 'nullable|string|max:100',
+        'sitio_web' => 'nullable|string|max:255',
         'usuario_id' => 'required|exists:users,id',
         'estadoCliente_id' => 'required|exists:estado_clientes,id',
         'tiposDeContratos' => 'required|array',
@@ -73,14 +74,17 @@ public function index(Request $request)
         'url_facebook' => 'nullable|url|max:255',
         'url_youtube' => 'nullable|url|max:255',
     ]);
+
+    
         // Guardar dentro de una transacción
         DB::transaction(function () use ($request) {
+            
             // Procesar logo si existe
             $logoPath = null;
             if ($request->hasFile('logo')) {
                 $logoPath = $request->file('logo')->store('logos_clientes', 'public');
             }
-
+            
             // Crear cliente
             $cliente = Cliente::create([
                 'logo' => $logoPath,
@@ -94,7 +98,6 @@ public function index(Request $request)
 
             // Asociar contratos (tabla pivote)
             $cliente->tiposContrato()->sync($request->tiposDeContratos);
-
 
             // Registrar redes sociales sin duplicados
             $redes = [
@@ -145,12 +148,13 @@ public function index(Request $request)
     public function update(Request $request, Cliente $cliente)
 {
     // Validación de los datos recibidos del formulario de edición del cliente
+    
     $request->validate([
         'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        'nombre' => 'required|string|max:150',
+        'nombre' => 'required|string|max:255',
         'correo_electronico' => 'required|email|max:255',
         'telefono' => 'required|string|max:50',
-        'sitio_web' => 'nullable|string|max:100',
+        'sitio_web' => 'nullable|string|max:255',
         'usuario_id' => 'required|exists:users,id',
         'estadoCliente_id' => 'required|exists:estado_clientes,id',
         'tiposDeContratos' => 'required|array',
@@ -159,7 +163,7 @@ public function index(Request $request)
         'url_facebook' => 'nullable|url|max:255',
         'url_youtube' => 'nullable|url|max:255',
     ]);
-
+dump($request);
     // Iniciar transacción para guardar los cambios
     DB::transaction(function () use ($request, $cliente) {
         // Procesar logo si existe y actualizarlo
@@ -211,7 +215,6 @@ public function index(Request $request)
     // Redirecciona a la pagina inicial de cliente con mensaje de éxito
     return redirect()->route('clientes.index')->with('success', 'Cliente actualizado exitosamente.');
 }
-
 
     /**
      * Elimina un cliente de la base de datos.

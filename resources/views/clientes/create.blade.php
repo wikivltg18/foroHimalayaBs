@@ -9,7 +9,8 @@
 
     <x-slot name="slot">
         <div class="row">
-            <!-- Columna izquierda: Formulario -->
+
+            {{--  Columna izquierda: Formulario --}}
             <div class="col-md-6">
                 <form action="{{ route('clientes.store') }}" method="POST" enctype="multipart/form-data">
                     @csrf
@@ -68,8 +69,6 @@
                             <small class="text-muted">Seleccionar ejecutivo asignado.</small>
                             @error('estadoCliente_id') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
-
-                        
 
                         {{-- Contratos --}}
                         <div class="col-md-12 mb-3">
@@ -135,7 +134,7 @@
                     </div>
                 </form>
             </div>
-            <!-- Columna derecha: Imagen -->
+            {{--  Columna derecha: Imagen --}}
             <div class="col-md-6 p-0">
                 <div class="d-flex align-items-center justify-content-center" style="background-color: #003B7B; height: 100%;">
                         <img src="{{ asset('img/Logo_Himalaya_blanco-10.png') }}" alt="logo_himalaya" class="img-fluid" style="max-width: 90%; height: auto;">

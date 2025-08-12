@@ -14,8 +14,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Cliente extends Model
 {
-    // Definir la tabla asociada
-    protected $table = 'clientes';
 
     // Definir los campos que se pueden llenar
     protected $fillable = [
@@ -62,8 +60,6 @@ class Cliente extends Model
         return $this->belongsToMany(TipoContrato::class, 'cliente_tipo_contrato', 'cliente_id', 'tipo_contrato_id')
                     ->using(ClienteTipoContrato::class); // Usando el modelo pivot
     }
-
-
 
     /**
      * Relación con el modelo RedSocial.

@@ -22,6 +22,8 @@ class UpdateUserRequest extends FormRequest
      */
     public function rules(): array
 {
+    // Define la validación para la actualización de un usuario
+    // Asegúrate de que los campos coincidan con el modelo User
     $userId = $this->route('user')->id;
 
     return [

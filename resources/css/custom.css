@@ -2,6 +2,11 @@ body{
     background-color: #003B7B;
     font-size: small;
 }
+
+html, body {
+    height: 100%;
+}
+
 aside{
     position: fixed; 
     height: 95vh; 
@@ -63,55 +68,55 @@ tbody{
 }
 
 .general-container {
-                background-color: transparent !important;
-                padding: 0px !important;
-            }
+    background-color: transparent !important;
+    padding: 0px !important;
+}
 
-            .btn-secondary {
-                background-color: #15baee !important;
-                border-color: #15baee !important;
-            }
+.btn-secondary {
+    background-color: #15baee !important;
+    border-color: #15baee !important;
+}
 
-            .btn-secondary:hover {
-                background-color: #15baee !important;
-            }
+.btn-secondary:hover {
+    background-color: #15baee !important;
+}
 
-            .color-header-table {
-                background-color: #004EA4 !important;
-                color: #fff !important;
-            }
+.color-header-table {
+    background-color: #004EA4 !important;
+    color: #fff !important;
+}
 
-            .dw {
-                color: white !important;
-            }
-
-
-            .table-plus::before {
-                color: #ffff !important;
-                font-size: medium !important;
-            }
-
-            .table-plus::after {
-                color: #ffff !important;
-                font-size: medium !important;
-            }
+.dw {
+    color: white !important;
+}
 
 
-            .data-table-usuario thead tr th:first-child {
-                border-top-left-radius: 10px;
-                border-bottom-left-radius: 10px;
-            }
+.table-plus::before {
+    color: #ffff !important;
+    font-size: medium !important;
+}
 
-            .data-table-usuario thead tr th:last-child {
-                border-top-right-radius: 10px !important;
-                border-bottom-right-radius: 10px !important;
-            }
+.table-plus::after {
+    color: #ffff !important;
+    font-size: medium !important;
+}
 
 
-            .contact-directory-box .contact-name,
-            .contact-directory-box .contact-skill {
-                padding-bottom: 25px;
-            }
+.data-table-usuario thead tr th:first-child {
+    border-top-left-radius: 10px;
+    border-bottom-left-radius: 10px;
+}
+
+.data-table-usuario thead tr th:last-child {
+    border-top-right-radius: 10px !important;
+    border-bottom-right-radius: 10px !important;
+}
+
+
+.contact-directory-box .contact-name,
+.contact-directory-box .contact-skill {
+    padding-bottom: 25px;
+}
 
 
 .dropdown-item:hover{
@@ -124,7 +129,7 @@ tbody{
 
 td{
     vertical-align: middle;
-    height: 100px;
+    height: 70px;
 }
 
 .img-perfil{
@@ -139,7 +144,6 @@ td{
     object-fit: cover;
 }
 
-
 .pre-loader {
     position: fixed;
     top: 0;
@@ -153,3 +157,13 @@ td{
     align-items: center;
 }
 
+h4 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #003B7B;
+}
+
+label {
+    font-weight: 600;
+    color: #003B7B;
+}

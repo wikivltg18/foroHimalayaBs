@@ -28,9 +28,6 @@
             </form>
             <div class="col-md-12">
                 {{-- Evalua si la respuesta areas esta vacio --}}
-                @if ($areas->isEmpty())
-                    <p>No hay áreas registradas.</p>
-                @endif
             <div class="table-responsive">
                     <table id="data-table-roles" class="table table-striped table-hover table-bordered text-nowrap">
                         <thead class="text-center">
@@ -41,6 +38,14 @@
                             </tr>
                         </thead>
                         <tbody class="text-center">
+                                @if ($areas->isEmpty())
+                                <tr>
+                                    <td colspan="3" class="text-center">
+                                        No hay áreas registradas.
+                                    </td>
+                                </tr>
+                                @endif
+                                
                             @foreach ($areas as $area)
                                 <tr>
                                     <td>{{ $area->nombre }}</td>
