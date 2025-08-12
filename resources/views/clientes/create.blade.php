@@ -100,7 +100,7 @@
                         <div class="col-md-6 mb-3">
                             <label for="usuario_id">Director ejecutivo<span class="text-danger">*</span></label>
                             <select name="usuario_id" class="form-control @error('usuario_id') form-control-warning @enderror">
-                                <option value="">Seleccione un ejecutivo</option>
+                                <option value=""selected>Seleccione un ejecutivo</option>
                                 
                                 @foreach ($usuarios as $usuario)
                                     <option value="{{ $usuario->id }}" {{ old('usuario_id') == $usuario->id ? 'selected' : '' }}>{{ $usuario->name }}</option>

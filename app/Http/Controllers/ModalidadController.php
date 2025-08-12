@@ -12,7 +12,10 @@ class ModalidadController extends Controller
      */
     public function index()
     {
+        // Obtener todas las modalidades
         $modalidades = Modalidad::all();
+        
+        // Retornar las modalidades en formato JSON
         return response()->json($modalidades);
     }
 }

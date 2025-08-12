@@ -158,6 +158,11 @@ Route::middleware(['auth'])->delete('/clientes/{cliente}', [ClienteController::c
 
 
 //__/HERRAMIENTAS/__//
+
+Route::get('/herramientas', fn () => view('herramientas.index'))
+    ->middleware(['auth', 'verified'])
+    ->name('herramientas.index');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/modalidades', [ModalidadController::class, 'index']);
 
@@ -171,10 +176,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('/fases-servicio/{fase}', [FaseServicioController::class, 'update'])->whereNumber('fase');
     Route::delete('/fases-servicio/{fase}', [FaseServicioController::class, 'destroy'])->whereNumber('fase');
 });
-
-Route::get('/herramientas', fn () => view('herramientas.index'))
-    ->middleware(['auth', 'verified'])
-    ->name('herramientas.index');
 
 
 //ERRORS VIEWS

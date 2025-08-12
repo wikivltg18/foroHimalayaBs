@@ -16,7 +16,8 @@ class ProfileController extends Controller
      * Display the user's profile form.
      */
     public function edit(Request $request): View
-    {
+    {   
+        // Muestra la vista de edición del perfil con los datos del usuario
         return view('profile.edit', [
             'user' => $request->user(),
         ]);
@@ -46,12 +47,12 @@ class ProfileController extends Controller
             if ($user->foto_perfil) {
                 Storage::disk('public')->delete($user->foto_perfil);
             }
-
+            // Guarda la nueva ruta de la imagen
             $user->foto_perfil = $path;
         }
-
+        // Guarda los cambios en el usuario
         $user->save();
-
+        // Redirige de vuelta al formulario con un mensaje de éxito
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
 
@@ -64,16 +65,16 @@ class ProfileController extends Controller
         $request->validateWithBag('userDeletion', [
             'password' => ['required', 'current_password'],
         ]);
-
+        // Obtiene el usuario autenticado
         $user = $request->user();
-
+        // Salida de la sesión
         Auth::logout();
-
+        // Elimina la cuenta del usuario
         $user->delete();
-
+        // Invalida la sesión y regenera el token
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
+        // Redirige a la página principal
         return Redirect::to('/');
     }
 }

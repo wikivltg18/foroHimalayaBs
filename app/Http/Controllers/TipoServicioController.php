@@ -12,10 +12,12 @@ class TipoServicioController extends Controller
      */
     public function index(Request $request)
     {
+        // Filtrar por modalidad_id si se proporciona en la solicitud
         $q = TipoServicio::query()->select('id','modalidad_id','nombre','descripcion');
-    if ($request->filled('modalidad_id')) {
-        $q->where('modalidad_id', $request->modalidad_id);
-    }
+        // Si se proporciona modalidad_id en la solicitud, filtrar por ese valor
+        if ($request->filled('modalidad_id')) {
+            $q->where('modalidad_id', $request->modalidad_id);
+        }
     return response()->json(['data' => $q->orderBy('nombre')->get()]);
     }
 

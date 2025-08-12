@@ -17,17 +17,19 @@ class ClienteController extends Controller
      */
 public function index(Request $request)
 {
+    // Obtener parámetros de búsqueda y paginación
     $buscar = $request->input('buscar');
     $estado = $request->input('estado');
     $cantidad = $request->input('cantidad', 5); // 5 por defecto
 
-
+    // Consulta con filtros y relaciones
     $clientes = Cliente::with(['usuario', 'estado', 'tiposContrato'])
         ->when($buscar, fn($query) => $query->where('nombre', 'like', "%{$buscar}%"))
         ->when($estado, fn($query) => $query->whereHas('estado', fn($q) => $q->where('nombre', $estado)))
-        ->orderBy('nombre')
-        ->paginate($cantidad);
+        ->orderBy('nombre') // Ordenar por nombre
+        ->paginate($cantidad); 
 
+    // Pasar los datos a la vista
     return view('clientes.index', compact('clientes', 'buscar', 'estado', 'cantidad'));
 }
     /**
@@ -35,15 +37,18 @@ public function index(Request $request)
      */
     public function create()
     {
+        // Cargar usuarios con cargo "Director Ejecutivo"
         $usuarios = User::where('id_cargo', 6)
         ->orWhereHas('cargo', function ($query) {
         $query->where('nombre', 'Director Ejecutivo');
         })
         ->get();
 
+        // Obtener todos los tipos de contratos y estados de clientes
         $tiposDeContratos = TipoContrato::all();
         $estadosClientes = EstadoCliente::all();
-
+        
+        // Pasar los datos a la vista
         return view('clientes.create', compact('usuarios', 'estadosClientes', 'tiposDeContratos' ));
     }
 
@@ -88,8 +93,7 @@ public function index(Request $request)
             ]);
 
             // Asociar contratos (tabla pivote)
-            // Asociar contratos (tabla pivote)
-    $cliente->tiposContrato()->sync($request->tiposDeContratos);
+            $cliente->tiposContrato()->sync($request->tiposDeContratos);
 
 
             // Registrar redes sociales sin duplicados
@@ -114,29 +118,24 @@ public function index(Request $request)
 
         return redirect()->route('clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
-
-
-    /**
-     * Muestra los detalles de un cliente.
-     */
-    public function show()
-    {
-
-    }
-
+    
     /**
      * Muestra el formulario para editar un cliente.
      */
     public function edit(Cliente $cliente)
     {
+        // Cargar relaciones necesarias
         $usuarios = User::where('id_cargo', 6)
         ->orWhereHas('cargo', function ($query) {
             $query->where('nombre', 'Director Ejecutivo');
         })
         ->get();
-
+        
+        // Obtener todos los tipos de contratos y estados de clientes
         $tiposDeContratos = TipoContrato::all();
         $estadosClientes = EstadoCliente::all();
+
+        // Cargar relaciones del cliente para el formulario de edición (contratos y redes sociales)
         return view('clientes.edit', compact('cliente', 'usuarios', 'estadosClientes', 'tiposDeContratos'));
     }
 
@@ -145,7 +144,7 @@ public function index(Request $request)
      */
     public function update(Request $request, Cliente $cliente)
 {
-    // Validación de los datos
+    // Validación de los datos recibidos del formulario de edición del cliente
     $request->validate([
         'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:2048',
         'nombre' => 'required|string|max:150',
@@ -209,7 +208,7 @@ public function index(Request $request)
             }
         }
     });
-
+    // Redirecciona a la pagina inicial de cliente con mensaje de éxito
     return redirect()->route('clientes.index')->with('success', 'Cliente actualizado exitosamente.');
 }
 
@@ -219,9 +218,9 @@ public function index(Request $request)
      */
     public function destroy(Cliente $cliente)
     {
+        // Eliminar cliente y sus relaciones
         $cliente->delete();
-
+        // Redirecciona a la pagina inicial de cliente con mensaje de éxito
         return redirect()->route('clientes.index')->with('success', 'Cliente eliminado exitosamente.');
     }
-
 }

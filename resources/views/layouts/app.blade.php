@@ -100,10 +100,7 @@
                                         </li>
                                         <!-- Submenús: Tipos de servicios, Fases de servicios -->
                                         <ul class="submenu">
-                                            <li><a href="{{ url('/herramientas/') }}" class="text-muted text-decoration-none">Tipos de servicios</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/herramientas') }}" class="text-muted text-decoration-none">Fases de servicios</a></li>
+                                            <li><a href="{{ url('/herramientas') }}" class="text-muted text-decoration-none">Planeación de servicios</a></li>
                                         </ul>
                                         <!-- Opción: Permisos -->
                                         <li class="dropdown">
