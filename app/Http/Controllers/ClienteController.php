@@ -17,19 +17,17 @@ class ClienteController extends Controller
      */
 public function index(Request $request)
 {
-    // Obtener parámetros de búsqueda y paginación
     $buscar = $request->input('buscar');
     $estado = $request->input('estado');
     $cantidad = $request->input('cantidad', 5); // 5 por defecto
 
-    // Consulta con filtros y relaciones
+
     $clientes = Cliente::with(['usuario', 'estado', 'tiposContrato'])
         ->when($buscar, fn($query) => $query->where('nombre', 'like', "%{$buscar}%"))
         ->when($estado, fn($query) => $query->whereHas('estado', fn($q) => $q->where('nombre', $estado)))
-        ->orderBy('nombre') // Ordenar por nombre
-        ->paginate($cantidad); 
+        ->orderBy('nombre')
+        ->paginate($cantidad);
 
-    // Pasar los datos a la vista
     return view('clientes.index', compact('clientes', 'buscar', 'estado', 'cantidad'));
 }
     /**
@@ -37,18 +35,15 @@ public function index(Request $request)
      */
     public function create()
     {
-        // Cargar usuarios con cargo "Director Ejecutivo"
         $usuarios = User::where('id_cargo', 6)
         ->orWhereHas('cargo', function ($query) {
         $query->where('nombre', 'Director Ejecutivo');
         })
         ->get();
 
-        // Obtener todos los tipos de contratos y estados de clientes
         $tiposDeContratos = TipoContrato::all();
         $estadosClientes = EstadoCliente::all();
-        
-        // Pasar los datos a la vista
+
         return view('clientes.create', compact('usuarios', 'estadosClientes', 'tiposDeContratos' ));
     }
 
@@ -58,14 +53,13 @@ public function index(Request $request)
 
     public function store(Request $request)
     {
-
-    // Validación de los datos
+        // Validación de los datos
     $request->validate([
         'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        'nombre' => 'required|string|max:255',
+        'nombre' => 'required|string|max:150',
         'correo_electronico' => 'required|email|max:255',
         'telefono' => 'required|string|max:50',
-        'sitio_web' => 'nullable|string|max:255',
+        'sitio_web' => 'nullable|string|max:100',
         'usuario_id' => 'required|exists:users,id',
         'estadoCliente_id' => 'required|exists:estado_clientes,id',
         'tiposDeContratos' => 'required|array',
@@ -74,17 +68,14 @@ public function index(Request $request)
         'url_facebook' => 'nullable|url|max:255',
         'url_youtube' => 'nullable|url|max:255',
     ]);
-
-    
         // Guardar dentro de una transacción
         DB::transaction(function () use ($request) {
-            
             // Procesar logo si existe
             $logoPath = null;
             if ($request->hasFile('logo')) {
                 $logoPath = $request->file('logo')->store('logos_clientes', 'public');
             }
-            
+
             // Crear cliente
             $cliente = Cliente::create([
                 'logo' => $logoPath,
@@ -97,7 +88,9 @@ public function index(Request $request)
             ]);
 
             // Asociar contratos (tabla pivote)
-            $cliente->tiposContrato()->sync($request->tiposDeContratos);
+            // Asociar contratos (tabla pivote)
+    $cliente->tiposContrato()->sync($request->tiposDeContratos);
+
 
             // Registrar redes sociales sin duplicados
             $redes = [
@@ -121,24 +114,29 @@ public function index(Request $request)
 
         return redirect()->route('clientes.index')->with('success', 'Cliente creado exitosamente.');
     }
-    
+
+
+    /**
+     * Muestra los detalles de un cliente.
+     */
+    public function show()
+    {
+
+    }
+
     /**
      * Muestra el formulario para editar un cliente.
      */
     public function edit(Cliente $cliente)
     {
-        // Cargar relaciones necesarias
         $usuarios = User::where('id_cargo', 6)
         ->orWhereHas('cargo', function ($query) {
             $query->where('nombre', 'Director Ejecutivo');
         })
         ->get();
-        
-        // Obtener todos los tipos de contratos y estados de clientes
+
         $tiposDeContratos = TipoContrato::all();
         $estadosClientes = EstadoCliente::all();
-
-        // Cargar relaciones del cliente para el formulario de edición (contratos y redes sociales)
         return view('clientes.edit', compact('cliente', 'usuarios', 'estadosClientes', 'tiposDeContratos'));
     }
 
@@ -147,14 +145,13 @@ public function index(Request $request)
      */
     public function update(Request $request, Cliente $cliente)
 {
-    // Validación de los datos recibidos del formulario de edición del cliente
-    
+    // Validación de los datos
     $request->validate([
         'logo' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg|max:2048',
-        'nombre' => 'required|string|max:255',
+        'nombre' => 'required|string|max:150',
         'correo_electronico' => 'required|email|max:255',
         'telefono' => 'required|string|max:50',
-        'sitio_web' => 'nullable|string|max:255',
+        'sitio_web' => 'nullable|string|max:100',
         'usuario_id' => 'required|exists:users,id',
         'estadoCliente_id' => 'required|exists:estado_clientes,id',
         'tiposDeContratos' => 'required|array',
@@ -163,7 +160,7 @@ public function index(Request $request)
         'url_facebook' => 'nullable|url|max:255',
         'url_youtube' => 'nullable|url|max:255',
     ]);
-dump($request);
+
     // Iniciar transacción para guardar los cambios
     DB::transaction(function () use ($request, $cliente) {
         // Procesar logo si existe y actualizarlo
@@ -212,18 +209,19 @@ dump($request);
             }
         }
     });
-    // Redirecciona a la pagina inicial de cliente con mensaje de éxito
+
     return redirect()->route('clientes.index')->with('success', 'Cliente actualizado exitosamente.');
 }
+
 
     /**
      * Elimina un cliente de la base de datos.
      */
     public function destroy(Cliente $cliente)
     {
-        // Eliminar cliente y sus relaciones
         $cliente->delete();
-        // Redirecciona a la pagina inicial de cliente con mensaje de éxito
+
         return redirect()->route('clientes.index')->with('success', 'Cliente eliminado exitosamente.');
     }
+
 }
