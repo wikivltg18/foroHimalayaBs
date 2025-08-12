@@ -15,59 +15,69 @@ class RoleController extends Controller
 {
     public function index(Request $request)
     {
+        // Obtener el término de búsqueda si existe
         $busqueda = $request->input('buscar');
 
-    $roles = Role::query()
-        ->when($busqueda, function ($query, $busqueda) {
-            $query->where('name', 'like', "%{$busqueda}%");
-        })
-        ->orderBy('name')
-        ->paginate(5)
-        ->appends(['buscar' => $busqueda]); // mantiene el filtro en los enlaces
+        // Consulta con filtro de búsqueda
+        $roles = Role::query()
+            ->when($busqueda, function ($query, $busqueda) {
+                $query->where('name', 'like', "%{$busqueda}%");
+            })
+            ->orderBy('name') // Ordenar alfabéticamente por nombre
+            ->paginate(5) // Paginación de 5 roles por página
+            ->appends(['buscar' => $busqueda]); // Mantener el término de búsqueda en la paginación
 
+    // Retornar la vista con los roles y el término de búsqueda
     return view('equipo.roles.index', compact('roles', 'busqueda'));
     }
 
     public function create()
     {
+        // Retornar la vista para crear un nuevo rol
         return view('equipo.roles.create');
     }
 
+    // Almacenar un nuevo rol en la base de datos
     public function store(Request $request)
     {
+        // Validar la entrada
         $request->validate([
             'name' => 'required|unique:roles,name',
         ]);
-
+        // Crear el nuevo rol
         Role::create([
             'name' => $request->name,
             'guard_name' => 'web',
         ]);
-
+        // Redirigir con un mensaje de éxito
         return redirect()->route('equipo.roles.index')->with('success', 'Rol creado correctamente.');
     }
 
     public function edit(Role $role)
     {
+        // Retornar la vista para editar el rol
         return view('equipo.roles.edit', compact('role'));
     }
 
     public function update(Request $request, Role $role)
     {
+        // Validar la entrada
         $request->validate([
             'name' => 'required|unique:roles,name,' . $role->id,
         ]);
-
+        // Actualizar el rol
         $role->update([
             'name' => $request->name,
         ]);
-
+        // Redirigir con un mensaje de éxito
         return redirect()->route('equipo.roles.index')->with('success', 'Rol actualizado correctamente.');
     }
 
     public function destroy(Role $role)
     {
+        // Eliminar el rol
         $role->delete();
+        // Redirigir con un mensaje de éxito
         return redirect()->route('equipo.roles.index')->with('success', 'Rol eliminado correctamente.');
     }
 

@@ -8,8 +8,11 @@ use Illuminate\Database\Seeder;
 use Database\Seeders\AreaSeeder;
 use Database\Seeders\CargoSeeder;
 use Database\Seeders\ClienteSeeder;
+use Database\Seeders\ModalidadSeeder;
 use Database\Seeders\RedSocialSeeder;
 use Database\Seeders\TipoContratoSeeder;
+use Database\Seeders\TipoServicioSeeder;
+use Database\Seeders\FaseServiciosSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -27,6 +30,9 @@ class DatabaseSeeder extends Seeder
             ClienteSeeder::class,
             TipoContratoSeeder::class,
             RedSocialSeeder::class,
+            ModalidadSeeder::class,
+            TipoServicioSeeder::class,
+            FaseServiciosSeeder::class,
         ]);
     }
 }

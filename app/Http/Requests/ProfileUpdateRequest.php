@@ -15,6 +15,7 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
+        // Define la valudación para la actualización del perfil
         return [
             'foto_perfil' => ['nullable', 'file', 'mimes:jpeg,png,jpg,gif,svg','max:2048'],
             'name' => ['required', 'string', 'max:255'],

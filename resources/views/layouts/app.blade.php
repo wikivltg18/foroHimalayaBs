@@ -100,10 +100,7 @@
                                         </li>
                                         <!-- Submenús: Tipos de servicios, Fases de servicios -->
                                         <ul class="submenu">
-                                            <li><a href="{{ url('/herramientas/') }}" class="text-muted text-decoration-none">Tipos de servicios</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/herramientas') }}" class="text-muted text-decoration-none">Fases de servicios</a></li>
+                                            <li><a href="{{ url('/herramientas') }}" class="text-muted text-decoration-none">Planeación de servicios</a></li>
                                         </ul>
                                         <!-- Opción: Permisos -->
                                         <li class="dropdown">
@@ -169,6 +166,8 @@
         </div>
     </div>
 @yield('alert')
+@stack('scripts')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
