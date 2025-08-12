@@ -94,5 +94,4 @@ public function destroy(Area $area)
         // Redirigir con mensaje de éxito
         return redirect()->route('equipo.areas.index')->with('success', 'Área eliminada.');
     }
-
 }

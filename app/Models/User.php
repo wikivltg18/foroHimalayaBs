@@ -23,6 +23,11 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    
+    // Definir la tabla asociada al modelo
+    protected $table = 'users';
+
+    // Definir los campos que se pueden asignar masivamente
     protected $fillable = [
         'foto_perfil',
         'name',
@@ -59,28 +64,59 @@ class User extends Authenticatable
             'f_nacimiento' => 'date',
         ];
     }
+
+    // Relación de pertenencia a Cargo, Area y Role
+    /**
+     * Obtener el cargo asociado al usuario.
+     */
     public function cargo(): BelongsTo
     
     {
+        // Definir la relación de pertenencia a Cargo
+        // 'id_cargo' es la FK en users que apunta a cargos
+        // 'id' es la local key en cargos
+        // Retorna una instancia de la relación BelongsTo
+        // Usando el modelo Cargo
+        // Esto permite acceder al cargo asociado a este usuario
         return $this->belongsTo(Cargo::class, 'id_cargo');
     }
 
+    // Relación de pertenencia a Area
+    /**
+     * Obtener el área asociada al usuario.
+     */
     public function area(): BelongsTo
     
     {
+        // Definir la relación de pertenencia a Area
+        // 'id_area' es la FK en users que apunta a areas
+        // 'id' es la local key en areas
+        // Retorna una instancia de la relación BelongsTo
+        // Usando el modelo Area
+        // Esto permite acceder al área asociada a este usuario
         return $this->belongsTo(Area::class, 'id_area');
     }
 
+    // Relación de pertenencia a Role
+    /**
+     * Obtener el rol asociado al usuario.
+     */
     public function role(): BelongsTo
     
     {
+        // Definir la relación de pertenencia a Role
+        // 'id_rol' es la FK en users que apunta a roles
+        // 'id' es la local key en roles
+        // Retorna una instancia de la relación BelongsTo
+        // Usando el modelo Role
+        // Esto permite acceder al rol asociado a este usuario
         return $this->belongsTo(Role::class, 'id_rol');
     }
 
     
     //Permite que el administrador tenga el acceso al sistema siempre
     
-/*
+    /*
     public function hasPermissionTo($permission, $guardName = null): bool
     {
         if ($this->hasRole('superadministrador')) {
