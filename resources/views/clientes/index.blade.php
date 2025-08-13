@@ -64,7 +64,7 @@
                                 <tr>
                                     <td><img src="{{ asset('storage/' . $cliente->logo) }}" alt="Logo del cliente" class="img-perfil rounded-circle"></td>
                                     <td>{{ $cliente->nombre }}</td>
-                                    <td><a class="btn btn-primary" href="{{ $cliente->sitio_web }}">{{ $cliente->nombre }}</a></td>
+                                    <td><a class="btn btn-primary" href="{{ $cliente->sitio_web }}" target="blank">{{ $cliente->nombre }}</a></td>
                                     <td>{{ $cliente->correo_electronico }}</td>
                                     <td>{{ $cliente->telefono }}</td>
                                     <td>{{ $cliente->usuario->name }}</td>
@@ -87,7 +87,7 @@
                                                 <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
                                             </svg>
                                         </a>
-                                        <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" style="display:inline;">
+                                        <form action="{{ route('clientes.destroy', $cliente->id) }}" method="POST" class="form-eliminar" style="display:inline;"  style="display:inline;">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger">
@@ -113,6 +113,30 @@
     </x-slot>
     @section('alert')
         <script>
+
+            document.addEventListener('DOMContentLoaded', function () {
+            const forms = document.querySelectorAll('.form-eliminar');
+
+            forms.forEach(form => {
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault(); // Evita el envío inmediato
+
+                    const result = await Swal.fire({
+                        title: '¿Estás seguro?',
+                        text: "Esta acción eliminará el cliente.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    });
+
+                    if (result.isConfirmed) {
+                        form.submit(); // Envía el formulario si se confirma
+                    }
+                });
+            });
+        });
+
             // Mostrar alerta de éxito si hay un mensaje de éxito en la sesión
             document.addEventListener('DOMContentLoaded', function () {
                 @if (session('success'))
@@ -124,6 +148,8 @@
                     });
                 @endif
             });
+
+
             // Función para limpiar el formulario de filtro
             function limpiarFormulario() {
                 const form = document.getElementById('form-filtro-clientes');

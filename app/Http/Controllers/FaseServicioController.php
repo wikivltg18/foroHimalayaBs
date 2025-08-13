@@ -94,13 +94,22 @@ public function index(Request $request)
     /**
      * Remove the specified resource from storage.
      */
+    
     public function destroy($id)
     {
-        // Eliminación de la fase de servicio
-        $faseDeServicio = FaseServicio::findOrfail($id);
-        $faseDeServicio->delete();
-        
-        // Respuesta JSON sin contenido
-        return response()->json(null, 204);
+        try {
+            // Eliminación de la fase de servicio
+            $faseDeServicio = FaseServicio::findOrFail($id);
+            $faseDeServicio->delete();
+
+            return response()->json(null, 204);
+        } catch (\Exception $e) {
+            // Respuesta JSON sin contenido
+            return response()->json([
+                'error' => 'No se pudo eliminar la fase de servicio.',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
+
 }

@@ -61,7 +61,7 @@
   <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
   <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
 </svg></a>
-                                        <form action="{{ route('equipo.usuarios.destroy', $user->id) }}" method="POST" style="display:inline;">
+                                        <form action="{{ route('equipo.usuarios.destroy', $user->id) }}" method="POST" class="form-eliminar" style="display:inline;" style="display:inline;">
                                             @csrf
                                             @method('DELETE')
                                             <button type="submit" class="btn btn-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-archive" viewBox="0 0 16 16">
@@ -82,6 +82,29 @@
     </x-slot>
 @section('alert')
     <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const forms = document.querySelectorAll('.form-eliminar');
+
+            forms.forEach(form => {
+                form.addEventListener('submit', async function (e) {
+                    e.preventDefault(); // Evita el envío inmediato
+
+                    const result = await Swal.fire({
+                        title: '¿Estás seguro?',
+                        text: "Esta acción eliminará el usuario.",
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    });
+
+                    if (result.isConfirmed) {
+                        form.submit(); // Envía el formulario si se confirma
+                    }
+                });
+            });
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
             @if (session('success'))
                 Swal.fire({

@@ -58,7 +58,7 @@
                 <small class="text-muted">Ej: Herramienta estratégica que organiza y planifica la publicación de contenidos.</small>
             </div>
             <div class="mb-3">
-                <button type="button" class="btn btn-primary" id="guardar_fase_servicio">Guardar fase de servicio</button>
+                <button type="button" class="btn btn-primary" id="guardar_fase_servicio">Crear fase de servicio</button>
             </div>
         </div>
     </div>
@@ -453,22 +453,29 @@
         });
 
         // Eliminar Fase
-        $(document).on('click', '.btn-eliminar', function(){
+        $(document).on('click', '.btn-eliminar', async function () {
             const id = $(this).closest('tr').data('id');
-            if (Swal.fire({
+
+            const result = await Swal.fire({
                 title: '¿Estás seguro?',
                 text: "Esta acción eliminará la fase de servicio.",
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonText: 'Sí, eliminar',
                 cancelButtonText: 'Cancelar'
-            }).isConfirmed !== true
-            ) return;
+            });
+
+            if (!result.isConfirmed) return;
 
             // Realizar la petición de eliminación
-            $.ajax({ url: '/fases-servicio/' + id, type: 'DELETE' })
-            .done(function(){ cargarTablaFases(); })
-            .fail(function(xhr){
+            $.ajax({
+                url: '/fases-servicio/' + id,
+                type: 'DELETE'
+            })
+            .done(function () {
+                cargarTablaFases();
+            })
+            .fail(function (xhr) {
                 console.error(xhr.responseJSON || xhr.responseText);
                 Swal.fire({
                     icon: 'error',
@@ -478,6 +485,8 @@
                 });
             });
         });
+
+
 
         // Editar Fase (rápido)
         $(document).on('click', '.btn-editar', function(){

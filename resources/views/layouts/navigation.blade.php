@@ -11,7 +11,7 @@
                 <div class="dropdown">
                     <a class="dropdown-toggle no-arrow" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <i class="icon-copy dw dw-notification" style="color: #fff"></i>
-                        <img src="{{ asset('img/notificacion.png') }}" class="" alt="logo" style="width: 20px">
+                        <span class="icon-notificacion-de-campana-en-redes-sociales-11"></span>
                     </a>
                     <div class="dropdown-menu dropdown-menu-end mt-3">
                         <div class="notification-list mx-h-350 customscroll">

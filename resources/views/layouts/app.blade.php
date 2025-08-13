@@ -15,6 +15,7 @@
     <!-- Fonts (opcional, puedes dejarlo si usas Figtree) -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
 </head>
 <body>
     <div class="container-fluid">
@@ -37,75 +38,59 @@
                                         <!-- Opción: Home -->
                                         <li class="dropdown">
                                             <a href="{{ url('/dashboard') }}" class="dropdown-toggle no-arrow text-muted text-decoration-none">
-                                                <span class="micon icon-home"></span><span>Inicio</span>
+                                                <span class="micon filter me-2 icon-home-1"></span>Inicio
                                             </a>
                                         </li>
                                         <!-- Opción: Clientes -->
                                         <li class="dropdown">
                                             <a href="{{ url('/clientes') }}" class="dropdown-toggle no-arrow text-muted text-decoration-none">
-                                                <span class="micon icon-clientes"></span>
-                                                Clientes</span>
+                                                <span class="micon me-2 icon-clientes-1"></span>Clientes
                                             </a>
                                         </li>
                                         <!-- Opción: Mi Equipo -->
                                         <li class="dropdown">
-                                        <a href="{{ url('/dashboard') }}" class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span class="micon icon-equipo"></span>Mi Equipo</a>
+                                            <a href="{{ url('/dashboard') }}" class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span class="micon me-2 icon-Vector"></span>Mi Equipo</a>
+                                        
+                                            <!-- Submenús: Usuarios, Áreas, Cargos, Roles -->
+                                            <ul class="submenu">
+                                                <li><a href="{{ url('/equipo/usuarios') }}" class="text-muted text-decoration-none">Usuarios</a></li>
+                                                <li><a href="{{ url('/equipo/areas') }}" class="text-muted text-decoration-none">Áreas</a></li>
+                                                <li><a href="{{ url('/equipo/cargos') }}" class="text-muted text-decoration-none">Cargos</a></li>
+                                                <li><a href="{{ url('/equipo/roles') }}" class="text-muted text-decoration-none">Roles</a></li>
+                                            </ul>
                                         </li>
-                                        <!-- Submenús: Usuarios, Áreas, Cargos, Roles -->
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/equipo/usuarios') }}" class="text-muted text-decoration-none">Usuarios</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/equipo/areas') }}" class="text-muted text-decoration-none">Áreas</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/equipo/cargos') }}" class="text-muted text-decoration-none">Cargos</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/equipo/roles') }}" class="text-muted text-decoration-none">Roles</a></li>
-                                        </ul>
                                         <!-- Opción: Foro -->
                                         <li class="dropdown">
-                                        <a href="{{ url('/dashboard') }}" class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span class="micon icon-equipo"></span>Foro</a>
+                                            <a href="{{ url('/dashboard') }}" class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span class="micon me-2 icon-Foro-1"></span>Foro</a>
+                                            <!-- Submenús: Áreas, Servicios, Roles -->
+                                            <ul class="submenu">
+                                                <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Diseño</a></li>
+                                                <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Contenido</a></li>
+                                                <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Digital Performance</a></li>
+                                                <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Desarrollo</a></li>
+                                                <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Creatividad</a></li>
+                                                <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Estraregia</a></li>
+                                            </ul>
                                         </li>
-                                        <!-- Submenús: Áreas, Servicios, Roles -->
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Diseño</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Contenido</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Digital Performance</a></li>
-                                        </ul>
-                                        <!-- Submenús: Áreas, Servicios, Roles -->
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Desarrollo</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Creatividad</a></li>
-                                        </ul>
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/dashboard') }}" class="text-muted text-decoration-none">Estraregia</a></li>
-                                        </ul>
                                         <!-- Opción: Analitica -->
                                         <li class="dropdown">
                                             <a href="{{ url('/dashboard') }}" class="dropdown-toggle no-arrow text-muted text-decoration-none">
-                                                <span class="micon icon-home"></span><span>Analitica</span>
+                                                <span class="micon me-2 icon-informes-1"></span>Analitica
                                             </a>
                                         </li>
                                         <!-- Opción: Herramientas -->
                                         <li class="dropdown">
-                                        <a href="{{ url('/dashboard') }}" class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span class="micon icon-equipo"></span>Herramientas</a>
+                                            <a href="{{ url('/dashboard') }}" class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span class="micon me-2 icon-wrench-alt-1"></span>Herramientas</a>
+                                            <ul class="submenu">
+                                                <li><a href="{{ url('/herramientas') }}" class="text-muted text-decoration-none">Planeación de servicios</a></li>
+                                            </ul>
                                         </li>
                                         <!-- Submenús: Tipos de servicios, Fases de servicios -->
-                                        <ul class="submenu">
-                                            <li><a href="{{ url('/herramientas') }}" class="text-muted text-decoration-none">Planeación de servicios</a></li>
-                                        </ul>
+
                                         <!-- Opción: Permisos -->
                                         <li class="dropdown">
                                             <a href="{{ url('/permisos') }}" class="dropdown-toggle no-arrow text-muted text-decoration-none">
-                                                <span class="micon icon-home"></span><span>Permisos</span>
+                                                <span class="micon me-2 icon-wrench-alt-1"></span><span>Permisos</span>
                                             </a>
                                         </li>
                                     </ul>
@@ -168,6 +153,22 @@
 @yield('alert')
 @stack('scripts')
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const dropdowns = document.querySelectorAll("#accordion-menu .dropdown-toggle");
 
+    dropdowns.forEach(dropdown => {
+        dropdown.addEventListener("click", function (e) {
+            const parentLi = this.parentElement;
+            const submenu = parentLi.querySelector(".submenu");
+
+            if (submenu) {
+                e.preventDefault(); // Evita navegación si hay submenú
+                submenu.classList.toggle("active");
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>
