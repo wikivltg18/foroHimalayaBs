@@ -1,7 +1,12 @@
+* > p, li, select, input, a, button {
+    font-size: small !important;
+}
+
 body{
     background-color: #003B7B;
     font-size: small;
 }
+
 
 html, body {
     height: 100%;
@@ -40,6 +45,7 @@ aside{
     padding: 5px !important;
     transition: all 0.3s ease !important;
 }
+
 ul {
     list-style-type: none;
     padding: 0;
@@ -166,4 +172,13 @@ h4 {
 label {
     font-weight: 600;
     color: #003B7B;
+}
+
+.submenu {
+    display: none;
+    padding-left: 20px;
+}
+
+.submenu.active {
+    display: block;
 }

@@ -51,8 +51,10 @@
                                 name="correo_electronico"
                                 required
                                 class="form-control @error('correo_electronico') form-control-warning @enderror"
-                                value="{{ old('correo_electronico') }}">
-                            <small class="text-muted">Ej: cliente@ejemplo.com</small>
+                                value="{{ old('correo_electronico') }}"
+                                onkeyup="validarEmail(this)">
+                            <div class="error-email"></div>
+                            <small class="text-muted">Ej: nombre@dominio.com</small>
                             @error('correo_electronico') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
 
@@ -66,7 +68,7 @@
                                 inputmode="tel"
                                 required
                                 class="form-control @error('telefono') form-control-warning @enderror"
-                                value="{{ old('telefono') }}">
+                                value="{{ old('telefono') }}" onkeyup="validarSoloNumeros(this)">
                             <small class="text-muted">Teléfono directo del cliente.</small>
                             @error('telefono') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
@@ -80,8 +82,9 @@
                                 name="sitio_web"
                                 class="form-control @error('sitio_web') form-control-warning @enderror"
                                 value="{{ old('sitio_web') }}"
-                                placeholder="https://...">
-                            <small class="text-muted">URL del sitio web (opcional).</small>
+                                onkeyup="validarURL(this)">
+                                <div class="error_sitio_web"></div>
+                                <small class="text-muted">Ej: https://..., http://...,</small>
                             @error('sitio_web') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
 
@@ -158,9 +161,13 @@
                                 type="url"
                                 id="url_instagram"
                                 name="url_instagram"
-                                class="form-control"
-                                placeholder="https://instagram.com/..."
-                                value="{{ old('url_instagram') }}">
+                                class="form-control @error('url_instagram') form-control-warning @enderror"
+                                value="{{ old('url_instagram') }}"
+                                onkeyup="validarURL(this)">
+                                <div class="error_instagram">
+
+                                </div>
+                                @error('url_instagram') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
 
                         {{-- Facebook --}}
@@ -170,9 +177,11 @@
                                 type="url"
                                 id="url_facebook"
                                 name="url_facebook"
-                                class="form-control"
-                                placeholder="https://facebook.com/..."
-                                value="{{ old('url_facebook') }}">
+                                class="form-control @error('url_facebook') form-control-warning @enderror"
+                                value="{{ old('url_facebook') }}"
+                                onkeyup="validarURL(this)">
+                                <small class="text-muted">Ej: https://facebook.com/... o https://facebook.com/... </small>
+                                @error('url_facebook') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
 
                         {{-- YouTube --}}
@@ -182,9 +191,11 @@
                                 type="url"
                                 id="url_youtube"
                                 name="url_youtube"
-                                class="form-control"
-                                placeholder="https://youtube.com/..."
-                                value="{{ old('url_youtube') }}">
+                                class="form-control @error('url_youtube') form-control-warning @enderror"
+                                value="{{ old('url_youtube') }}"
+                                onkeyup="validarURL(this)">
+                                <small class="text-muted">Ej: https://youtube.com/... o https://youtube.com/... </small>
+                                @error('url_youtube') <div class="text-warning">{{ $message }}</div> @enderror
                         </div>
 
                         {{-- Botón --}}
@@ -203,4 +214,128 @@
             </div>
         </div>
     </x-slot>
+    @push('scripts')
+        <script>
+            // Validar que el campo teléfono solo acepte números
+            function validarSoloNumeros(input) {
+                const valor = input.value;
+                if(isNaN(valor) || valor.trim() === '') {
+                    input.value = valor.replace(/[^0-9]/g, '');
+                }
+            }
+
+            // Validar formato de email
+            function validarEmail(input){
+                const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                return regex.test(input.value);
+            }
+
+            const emailInput = document.getElementById('correo_electronico');
+            emailInput.addEventListener('input', function() {
+                const errorDiv = document.querySelector('.error-email');
+                if (!validarEmail(emailInput)) {
+                    emailInput.classList.add('is-invalid');
+                    if (emailInput.classList.contains('is-invalid')) {
+                        if (errorDiv) {
+                            errorDiv.innerHTML =  `
+                                <p class="text-danger mb-1">
+                                    El formato del email no es válido.
+                                </p>
+                            `;
+                        }
+                    }
+                } else {
+                    emailInput.classList.remove('is-invalid');
+                    if (errorDiv) {
+                        errorDiv.textContent = '';
+                    }
+                }
+            });
+
+            // Validar formato de URL
+            function validarURL(input) {
+                const regex = /^https?:\/\/([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(\/[^\s?#]*)?(\?[^\s#]*)?(#[^\s]*)?$/;
+                return regex.test(input.value);
+            }
+            
+            const urlInputSitioWeb = document.getElementById('sitio_web');
+            urlInputSitioWeb.addEventListener('input', function() {
+                const errorDiv = document.querySelector('.error_sitio_web');
+                if (urlInputSitioWeb.value && !validarURL(urlInputSitioWeb)) {
+                    urlInputSitioWeb.classList.add('is-invalid');
+                    if (urlInputSitioWeb.classList.contains('is-invalid')) {
+                        if (errorDiv) {
+                            errorDiv.innerHTML =  `
+                                <p class="text-danger mb-1">
+                                    El formato de URL no es válido.
+                                </p>
+                            `;
+                        }
+                    }
+                } else {
+                    urlInputSitioWeb.classList.remove('is-invalid');
+                    if (errorDiv) {
+                        errorDiv.textContent = '';
+                    }
+                }
+            });
+            
+            
+            // Validar formato de URL Instagram
+            function validarUrlInstagram(input) {
+                const regex = /^https?:\/\/(www\.)?instagram\.com\/[a-zA-Z0-9._-]+\/?$/;
+                const errorDiv = document.getElementById('error_instagram');
+                if (!errorDiv) {
+                    const newErrorDiv = document.createElement('div');
+                    newErrorDiv.id = 'error_instagram';
+                    newErrorDiv.className = 'text-warning';
+                    newErrorDiv.style.display = 'none';
+                    newErrorDiv.textContent = 'Formato de URL de Instagram inválido.';
+                    input.parentNode.insertBefore(newErrorDiv, input.nextSibling);
+                }
+                return regex.test(input.value);
+            }
+            const urlInputInstagram = document.getElementById('url_instagram');
+            urlInputInstagram.addEventListener('input', function() {
+                if (urlInputInstagram.value && !validarUrlInstagram(urlInputInstagram)) {
+                    urlInputInstagram.classList.add('is-invalid');
+                    errorDiv.style.display = 'block';
+
+                } else {
+                    urlInputInstagram.classList.remove('is-invalid');
+                    errorDiv.style.display = 'none';
+
+                }
+            });
+
+            // Validar formato de URL Facebook
+            function validarUrlFacebook(input) {
+                const regex = /^https?:\/\/(www\.)?facebook\.com\/[a-zA-Z0-9._-]+\/?$/;
+                return regex.test(input.value);
+            }
+            const urlInputFacebook = document.getElementById('url_facebook');
+            urlInputFacebook.addEventListener('input', function() {
+                if (urlInputFacebook.value && !validarUrlFacebook(urlInputFacebook)) {
+                    urlInputFacebook.classList.add('is-invalid');
+                } else {
+                    urlInputFacebook.classList.remove('is-invalid');
+                }
+            });
+
+            // Validar formato de URL YouTube
+            function validarUrlYouTube(input) {
+                const regex = /^https?:\/\/(www\.)?youtube\.com\/[a-zA-Z0-9._-]+\/?$/;
+                return regex.test(input.value);
+            }
+            const urlInputYouTube = document.getElementById('url_youtube');
+            urlInputYouTube.addEventListener('input', function() {
+                if (urlInputYouTube.value && !validarUrlYouTube(urlInputYouTube)) {
+                    urlInputYouTube.classList.add('is-invalid');
+                } else {
+                    urlInputYouTube.classList.remove('is-invalid');
+                    
+                }
+            });
+        </script>
+    @endpush
 </x-app-layout>

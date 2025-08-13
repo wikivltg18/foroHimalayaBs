@@ -8,7 +8,7 @@
     </x-slot>
     <x-slot name="slot">
         <div class="container-fluid" style="padding-bottom: 5rem;">
-            <div class="row" style="height: 360px;">
+            <div class="row" style="height: auto;">
                 <div class="col-md-6">
                     <form action="{{ route('equipo.usuarios.update', $user->id) }}" method="POST" enctype="multipart/form-data">
                         @csrf
@@ -19,7 +19,12 @@
                         <div class="col-md-12 mb-3">
                             <label for="logo">Imagen de perfil</label>
                             <input type="file" name="foto_perfil" id="foto_perfil" class="form-control @error('foto_perfil') form-control-warning @enderror">
+                            <small class="text-muted">Imagen del cliente (JPG, PNG, WEBP, máx. 2MB).</small>
                             @error('foto_perfil') <div class="text-warning">{{ $message }}</div> @enderror
+                            
+                            @if($user->foto_perfil)
+                                <img src="{{ asset('storage/' . $user->foto_perfil) }}" alt="Foto de perfil" class="mt-2 d-block" style="max-width: 100px;">
+                            @endif
                         </div>
                             {{-- Campo: Nombre --}}
                             <div class="col-md-6 mb-3">
