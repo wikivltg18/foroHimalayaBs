@@ -7,7 +7,7 @@
         Editar usuario
     </x-slot>
     <x-slot name="slot">
-        <div class="container-fluid" style="padding-bottom: 5rem;">
+        <div class="container-fluid">
             <div class="row" style="height: auto;">
                 <div class="col-md-6">
                     <form action="{{ route('equipo.usuarios.update', $user->id) }}" method="POST" enctype="multipart/form-data">
@@ -109,8 +109,8 @@
                     </form>
                 </div>
                 {{-- Imagen decorativa --}}
-                <div class="col-md-6 d-flex align-items-center justify-content-center" style="background-color: #003B7B;">
-                    <img src="{{ asset('img/Logo_Himalaya_blanco-10.png') }}" alt="Logo Himalaya" class="img-fluid" style="max-width: 90%; height: auto;">
+                <div class="col-md-6 d-flex p-0 align-items-center justify-content-center" style="background-color: #003B7B;">
+                    <img src="{{ asset('img/cee2bd3f9f.png') }}" alt="Logo Himalaya" class="img-fluid" style="max-width: 100%; height: auto;">
                 </div>
             </div>
         </div>
