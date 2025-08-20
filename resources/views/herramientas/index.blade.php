@@ -468,30 +468,65 @@
             });
         });
 
-        // Eliminar Fase
-        $(document).on('click', '.eliminarFase', async function () {
-            const id = $(this).closest('tr').data('id');
+// Eliminar Fase
+$(document).on('click', '.eliminarFase', async function () {
+    const id = $(this).closest('tr').data('id'); // ID de la fase
+    const idTipoServicio = $(this).closest('tr').data('tipo-id'); // ID del tipo de servicio asociado
 
-            const result = await Swal.fire({
-                title: '¿Estás seguro?',
-                text: "Esta acción eliminará la fase de servicio.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-            });
+    // Contar las coincidencias de `tipo-id` en la tabla de fases antes de eliminar la fase
+    const coincidencias = $('#data-table-fases tr[data-tipo-id="' + idTipoServicio + '"]').length;
 
-            if (!result.isConfirmed) return;
+    const result = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción eliminará la fase de servicio.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
 
-            // Realizar la petición de eliminación
-            $.ajax({
-                url: '/fases-servicio/' + id,
-                type: 'DELETE'
-            })
-            .done(function () {
+    if (!result.isConfirmed) return;
+
+    // Si es la última fase del tipo de servicio, eliminamos también el tipo de servicio
+    if (coincidencias === 1) {
+        // Eliminar el tipo de servicio junto con la fase
+        $.ajax({
+            url: '/tipos-servicio/' + idTipoServicio,
+            type: 'DELETE',
+            success: function () {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'El tipo de servicio y la fase han sido eliminados.',
+                    icon: 'success',
+                    confirmButtonText: 'Ok'
+                });
                 cargarTablaFases();
-            })
-            .fail(function (xhr) {
+            },
+            error: function (xhr) {
+                console.error(xhr.responseJSON || xhr.responseText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ocurrió un error al eliminar el tipo de servicio.',
+                    confirmButtonText: 'Ok'
+                });
+            }
+        });
+    } else {
+        // Si hay más de una fase, solo eliminamos la fase
+        $.ajax({
+            url: '/fases-servicio/' + id,
+            type: 'DELETE',
+            success: function () {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'La fase de servicio ha sido eliminada.',
+                    icon: 'success',
+                    confirmButtonText: 'Ok'
+                });
+                cargarTablaFases();
+            },
+            error: function (xhr) {
                 console.error(xhr.responseJSON || xhr.responseText);
                 Swal.fire({
                     icon: 'error',
@@ -499,8 +534,10 @@
                     text: 'Ocurrió un error al eliminar la fase.',
                     confirmButtonText: 'Ok'
                 });
-            });
+            }
         });
+    }
+});
 
         // Editar Fase
         $(document).on('click', '.editarFase', function(){
@@ -556,7 +593,7 @@
 
     
     
-                // Editar Tipo
+        // Editar Tipo
         $(document).on('click', '.editarTipo', function(){
             const tr = $(this).closest('tr');
             const idTipo = tr.data('tipo-id');
@@ -609,43 +646,47 @@
         });
 
         // Eliminar Tipo
-// Eliminar Tipo
-$(document).on('click', '.eliminarTipo', async function () {
-    const id = $(this).closest('tr').data('tipo-id'); // Asegúrate de que el 'data-tipo-id' es correcto
+        $(document).on('click', '.eliminarTipo', async function () {
+            const id = $(this).closest('tr').data('tipo-id'); // Asegúrate de que el 'data-tipo-id' es correcto
 
-    const result = await Swal.fire({
-        title: '¿Estás seguro?',
-        text: "Esta acción eliminará el tipo de servicio.",
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Sí, eliminar',
-        cancelButtonText: 'Cancelar'
-    });
+            // Contar las coincidencias de `tipo_id` en la tabla antes de eliminarlo
+            const coincidencias = $('#data-table-fases tr[data-tipo-id="' + id + '"]').length;
 
-    if (!result.isConfirmed) return;
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: `Este tipo de servicio tiene ${coincidencias} fases de servicio. Esta acción eliminará todas las fases relacionadas.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
 
-    // Realizar la petición de eliminación
-    $.ajax({
-        url: '/tipos-servicio/' + id,
-        type: 'DELETE',
-        success: function(res) {
-            console.log(res.message); // Solo para debug
-        }
-    })
-    .done(function () {
-        cargarTablaFases(); // Refresca la tabla después de eliminar
-    })
-    .fail(function (xhr) {
-        console.error(xhr.responseJSON || xhr.responseText);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: 'Ocurrió un error al eliminar el tipo.',
-            confirmButtonText: 'Ok'
+            if (!result.isConfirmed) return;
+
+            // Realizar la petición de eliminación
+            $.ajax({
+                url: '/tipos-servicio/' + id,
+                type: 'DELETE'
+            })
+            .done(function () {
+                cargarTablaFases(); // Refresca la tabla después de eliminar
+                    Swal.fire({
+                        title: '¡Éxito!',
+                        text: 'Tipo de servicio eliminado',
+                        icon: 'success',
+                        confirmButtonText: 'Ok'
+                    });
+            })
+            .fail(function (xhr) {
+                console.error(xhr.responseJSON || xhr.responseText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ocurrió un error al eliminar el tipo.',
+                    confirmButtonText: 'Ok'
+                });
+            });
         });
-    });
-});
-
 
         // ====== Carga inicial ======
         $.when(cargarModalidades()).always(function(){
