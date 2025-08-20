@@ -171,7 +171,6 @@
     @push('scripts')
         {{-- Validación de formulario --}}
         <script>
-            
             document.addEventListener('DOMContentLoaded', () => {
             // -------- Utilidades de validación --------
             function limpiarNoDigitos(str) {

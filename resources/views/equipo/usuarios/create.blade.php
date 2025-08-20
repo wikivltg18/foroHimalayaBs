@@ -25,6 +25,7 @@
                             <input type="file" name="foto_perfil" id="foto_perfil"
                                 accept="image/jpeg,image/png,image/webp"
                                 class="form-control @error('foto_perfil') form-control-warning @enderror">
+                            <div id="error-img"></div>
                             <small class="text-muted">
                                 Imagen (JPG/PNG/WEBP), máx. 2MB.
                             </small>
@@ -84,7 +85,7 @@
                     <div class="col-md-6 mb-3">
                         <div class="form-group">
                             <label for="id_cargo" class="text-black">Cargo a asignar:<span class="text-danger">*</span></label>
-                            <select name="id_cargo" id="id_cargo" class="form-control" required>
+                            <select name="id_cargo" id="id_cargo" class="form-select" required>
                                 <option value="" disabled selected>Seleccione un cargo</option>
                                 @foreach ($cargos as $cargo)
                                     <option value="{{ $cargo->id }}" {{ old('id_cargo') == $cargo->id ? 'selected' : '' }}>
@@ -134,7 +135,7 @@
                     <div class="col-md-6 mb-3">
                         <div class="form-group">
                             <label for="id_rol" class="text-black">Rol a asignar:<span class="text-danger">*</span></label>
-                            <select name="role" class="form-control" id="id_role" required>
+                            <select name="role" class="form-select" id="id_role" required>
                                 <option value="" disabled selected>Seleccione un rol</option>
                                 @foreach ($roles as $role)
                                     <option value="{{ $role->id }}" {{ old('role') == $role->id ? 'selected' : '' }}>{{ $role->name }}</option>
@@ -154,7 +155,7 @@
                     <div class="col-md-6 mb-3">
                         <div class="form-group">
                             <label for="id_area" class="text-black">Área a asignar:<span class="text-danger">*</span></label>
-                            <select name="id_area" class="form-control" id="id_area" required>
+                            <select name="id_area" class="form-select" id="id_area" required>
                                 <option value="" disabled selected >Seleccione un área</option>
                                 @foreach ($areas as  $area)
                                 <option value="{{ $area->id }}" {{ old('id_area') == $area->id ? 'selected' : '' }}>{{ $area->nombre }}</option>
@@ -178,171 +179,176 @@
             </form>
         </div>
         {{-- Columna derecha: Imagen decorativa/logo --}}
-            <div class="col-md-6 p-0 d-flex align-items-center justify-content-center" style="background-color: #003B7B;">
+            <div class="col-md-6 p-0 d-flex align-items-end justify-content-center" style="background-color: #003B7B;">
                 <img src="{{ asset('img/cee2bd3f9f.png') }}" alt="Logo Himalaya" class="img-fluid" style="max-width: 100%; height: auto;">
             </div>
         </div>
     </x-slot>
     @push('scripts')
         <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // --- Validadores ---
-    function validarEmailValor(valor) {
-        const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return regex.test(valor || '');
-    }
-    function validarContraseñaValor(valor) {
-        // Min 8, una mayúscula, una minúscula, un número y un carácter especial
-        const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
-        return regex.test(valor || '');
-    }
+            document.addEventListener('DOMContentLoaded', () => {
+                // --- Validadores ---
+                function validarEmailValor(valor) {
+                    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                    return regex.test(valor || '');
+                }
+                function validarContraseñaValor(valor) {
+                    // Min 8, una mayúscula, una minúscula, un número y un carácter especial
+                    const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+                    return regex.test(valor || '');
+                }
 
-    function limpiarNoDigitos(str) {
-        // Remplaza letras por vacios, solo permite numeros
-        return (str || '').replace(/\D+/g, '');
-    }
+                function limpiarNoDigitos(str) {
+                    // Remplaza letras por vacios, solo permite numeros
+                    return (str || '').replace(/\D+/g, '');
+                }
 
-    // --- Elementos ---
-    const nombreInput   = document.getElementById('name');
-    const emailInput    = document.getElementById('email');
-    const passwordInput = document.getElementById('password');
-    const telefonoInput = document.getElementById('telefono');
-    const fNacimiento   = document.getElementById('f_nacimiento');
-    const fotoPerfil    = document.getElementById('foto_perfil');
-    const idCargoSelect = document.getElementById('id_cargo');
-    const idRolSelect   = document.getElementById('id_role');  // <-- coincide con el select
-    const idAreaSelect  = document.getElementById('id_area');
+                // --- Elementos ---
+                const nombreInput   = document.getElementById('name');
+                const emailInput    = document.getElementById('email');
+                const passwordInput = document.getElementById('password');
+                const telefonoInput = document.getElementById('telefono');
+                const fNacimiento   = document.getElementById('f_nacimiento');
+                const fotoPerfil    = document.getElementById('foto_perfil');
+                const idCargoSelect = document.getElementById('id_cargo');
+                const idRolSelect   = document.getElementById('id_role');  // <-- coincide con el select
+                const idAreaSelect  = document.getElementById('id_area');
 
-    const errName = document.getElementById('errName');
-    const errEmail = document.getElementById('errEmail');
-    const errorPassword = document.getElementById('errorPassword');
+                const errImgPerf = document.getElementById('error-img');
+                const errName = document.getElementById('errName');
+                const errEmail = document.getElementById('errEmail');
+                const errorPassword = document.getElementById('errorPassword');
 
-    const btnGuardar    = document.getElementById('btnGuardar');
+                const btnGuardar    = document.getElementById('btnGuardar');
 
-    // --- Listeners ---
-    if (nombreInput) {
-        nombreInput.addEventListener('input', () => {
-            const v = nombreInput.value();
-            const invalido = v === ''; 
-            toggleInvalido(nombreInput, invalido);
-            setError(errName, invalido ? 'El nombre no es válido.' : ''); 
-            verificarFormulario();
-        });
-    }
+                // --- Listeners ---
+                if (nombreInput) {
+                    nombreInput.addEventListener('input', () => {
+                        const v = nombreInput.value;
+                        const invalido = v === ''; 
+                        toggleInvalido(nombreInput, invalido);
+                        setError(errName, invalido ? 'El nombre no es válido.' : ''); 
+                        verificarFormulario();
+                    });
+                }
 
-    if (emailInput) {
-        emailInput.addEventListener('input', () => {
-            const v = emailInput.value.trim();
-            const valido = v && validarEmailValor(v);
-            toggleInvalido(emailInput, !valido);
-            setError(errEmail, valido ? '' : 'El formato del email no es válido.');
-            verificarFormulario();
-        });
-    }
+                if (emailInput) {
+                    emailInput.addEventListener('input', () => {
+                        const v = emailInput.value.trim();
+                        const valido = v && validarEmailValor(v);
+                        toggleInvalido(emailInput, !valido);
+                        setError(errEmail, valido ? '' : 'El formato del email no es válido.');
+                        verificarFormulario();
+                    });
+                }
 
-    if (passwordInput) {
-        passwordInput.addEventListener('input', () => {
-            const v = passwordInput.value.trim();
-            const valido = v && validarContraseñaValor(v);
-            toggleInvalido(passwordInput, !valido);
-            setError(errorPassword, valido ? '' : 'La constraseña debe tener Min 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial');
-            verificarFormulario();
-        });
-    }
+                if (passwordInput) {
+                    passwordInput.addEventListener('input', () => {
+                        const v = passwordInput.value.trim();
+                        const valido = v && validarContraseñaValor(v);
+                        toggleInvalido(passwordInput, !valido);
+                        setError(errorPassword, valido ? '' : 'La constraseña debe tener Min 8 caracteres, una mayúscula, una minúscula, un número y un carácter especial');
+                        verificarFormulario();
+                    });
+                }
 
-    if (telefonoInput) {
-        telefonoInput.addEventListener('input', () => {
-            const limpio = limpiarNoDigitos(telefonoInput.value);
-            if (telefonoInput.value !== limpio) {
-                telefonoInput.value = limpio;
-            }
-            verificarFormulario();
-        })            
-    }
+                if (telefonoInput) {
+                    telefonoInput.addEventListener('input', () => {
+                        const limpio = limpiarNoDigitos(telefonoInput.value);
+                        if (telefonoInput.value !== limpio) {
+                            telefonoInput.value = limpio;
+                        }
+                        verificarFormulario();
+                    })            
+                }
 
-    if (fNacimiento) {
-        const hoy = new Date();
-        // Calcular la fecha hace 18 años
-        const fechaLimite = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
-        // Formatear la fecha en formato YYYY-MM-DD
-        const formatoFecha = fechaLimite.toISOString().split('T')[0];
-        fNacimiento.value = formatoFecha;
-        fNacimiento.max = formatoFecha;
+                if (fNacimiento) {
+                    const hoy = new Date();
+                    // Calcular la fecha hace 18 años
+                    const fechaLimite = new Date(hoy.getFullYear() - 18, hoy.getMonth(), hoy.getDate());
+                    // Formatear la fecha en formato YYYY-MM-DD
+                    const formatoFecha = fechaLimite.toISOString().split('T')[0];
+                    fNacimiento.value = formatoFecha;
+                    fNacimiento.max = formatoFecha;
 
-         // Validación al cambiar el valor
-        fNacimiento.addEventListener('input', () => {
-            fNacimiento.classList.toggle('is-invalid', fNacimiento.value === '');
-            verificarFormulario();
-        });
-        
-    }
+                    // Validación al cambiar el valor
+                    fNacimiento.addEventListener('input', () => {
+                        fNacimiento.classList.toggle('is-invalid', fNacimiento.value === '');
+                        verificarFormulario();
+                    });
+                    
+                }
 
-    if (fotoPerfil) {
-        fotoPerfil.addEventListener('change', () => {
-            const file = fotoPerfil.files?.[0];
-            if (file) {
-                const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-                const isValidType = validTypes.includes(file.type);
-                const isValidSize = file.size <= 2 * 1024 * 1024; // 2MB
-                fotoPerfil.classList.toggle('is-invalid', !isValidType || !isValidSize);
-            } else {
-                fotoPerfil.classList.remove('is-invalid');
-            }
-            verificarFormulario();
-        });
-    }
+                if (fotoPerfil) {
+                    fotoPerfil.addEventListener('change', () => {
+                        const file = fotoPerfil.files?.[0];
+                        if (file) {
+                            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+                            const isValidType = validTypes.includes(file.type);
+                            const isValidSize = file.size <= 2 * 1024 * 1024; // 2MB
+                            fotoPerfil.classList.toggle('is-invalid', !isValidType || !isValidSize);
+                            setError(
+                            errImgPerf,
+                            isValidSize ? '' : 'El tamaño de la imagen no puede pasar los 2048 kilobytes.',
+                            isValidType ? '' : 'El tipo de imagen debe ser .jpeg, .png o .webp'
+                            );
+                        } else {
+                            fotoPerfil.classList.remove('is-invalid');
+                            setError('' , '');
+                        }
+                        verificarFormulario();
+                    });
+                }
 
-    function toggleInvalido(el, invalido) {
-        if (!el) return;
-        el.classList.toggle('is-invalid', !!invalido);
-    }
-    function setError(container, msg) {
-        if (!container) return;
-        container.innerHTML = msg ? `<p class="text-danger mb-1">${msg}</p>` : '';
-    }
+                function toggleInvalido(el, invalido) {
+                    if (!el) return;
+                    el.classList.toggle('is-invalid', !!invalido);
+                }
+                function setError(container, msg) {
+                    if (!container) return;
+                    container.innerHTML = msg ? `<p class="text-danger mb-1">${msg}</p>` : '';
+                }
 
-    if (idCargoSelect) idCargoSelect.addEventListener('change', verificarSelectRequerido);
-    if (idRolSelect)   idRolSelect.addEventListener('change', verificarSelectRequerido);
-    if (idAreaSelect)  idAreaSelect.addEventListener('change', verificarSelectRequerido);
+                if (idCargoSelect) idCargoSelect.addEventListener('change', verificarSelectRequerido);
+                if (idRolSelect)   idRolSelect.addEventListener('change', verificarSelectRequerido);
+                if (idAreaSelect)  idAreaSelect.addEventListener('change', verificarSelectRequerido);
 
-    function verificarSelectRequerido(e) {
-        const el = e.currentTarget;
-        el.classList.toggle('is-invalid', !el.value);
-        verificarFormulario();
-    }
+                function verificarSelectRequerido(e) {
+                    const el = e.currentTarget;
+                    el.classList.toggle('is-invalid', !el.value);
+                    verificarFormulario();
+                }
 
-    // --- Chequeos globales ---
-    function camposRequeridosValidos() {
-        const requeridos = [
-            nombreInput,
-            emailInput,
-            passwordInput,
-            telefonoInput,
-            fNacimiento,
-            idCargoSelect,
-            idRolSelect,
-            idAreaSelect
-        ].filter(Boolean); // quita nulos por si algún campo no existe
+                // --- Chequeos globales ---
+                function camposRequeridosValidos() {
+                    const requeridos = [
+                        nombreInput,
+                        emailInput,
+                        passwordInput,
+                        telefonoInput,
+                        fNacimiento,
+                        idCargoSelect,
+                        idRolSelect,
+                        idAreaSelect
+                    ].filter(Boolean); // quita nulos por si algún campo no existe
 
-        const algunVacio = requeridos.some(el =>
-            el.tagName === 'SELECT' ? !el.value : el.value.trim() === ''
-        );
+                    const algunVacio = requeridos.some(el =>
+                        el.tagName === 'SELECT' ? !el.value : el.value.trim() === ''
+                    );
 
-        const algunInvalido = requeridos.some(el => el.classList.contains('is-invalid'));
+                    const algunInvalido = requeridos.some(el => el.classList.contains('is-invalid'));
 
-        // Foto de perfil es opcional; si la quieres obligatoria, añádela a "requeridos"
-        return !algunVacio && !algunInvalido;
-    }
+                    // Foto de perfil es opcional; si la quieres obligatoria, añádela a "requeridos"
+                    return !algunVacio && !algunInvalido;
+                }
 
-    function verificarFormulario() {
-        const ok = camposRequeridosValidos();
-        if (btnGuardar) btnGuardar.disabled = !ok;
-    }
-
-    // Estado inicial
-    verificarFormulario();
-});
-</script>
-
+                function verificarFormulario() {
+                    const ok = camposRequeridosValidos();
+                    if (btnGuardar) btnGuardar.disabled = !ok;
+                }
+                // Estado inicial
+                verificarFormulario();
+            });
+        </script>
     @endpush
 </x-app-layout>

@@ -76,8 +76,6 @@ class ClienteController extends Controller
             'url_facebook'       => 'nullable|url|max:255',
             'url_youtube'        => 'nullable|url|max:255',
         ]);
-
-        dump($request->all());
         
         try {
         // Guardar dentro de una transacción
@@ -138,7 +136,6 @@ class ClienteController extends Controller
      */
     public function edit(Cliente $cliente)
     {
-        dump($cliente->redSocial);
         // Cargar usuarios con cargo "Director Ejecutivo"
         $usuarios = User::where('id_cargo', 6)
             ->orWhereHas('cargo', function ($query) {

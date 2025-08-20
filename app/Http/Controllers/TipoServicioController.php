@@ -53,10 +53,9 @@ class TipoServicioController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy($id)
+    public function destroy(TipoServicio $tipo)
     {
-        $tipoServicio = TipoServicio::findOrFail($id);
-        $tipoServicio->delete();
+        $tipo->delete();
         return response()->json(null, 204);
     }
 }

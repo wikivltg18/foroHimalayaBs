@@ -45,6 +45,7 @@ public function index(Request $request)
         $paginator->getCollection()->map(fn($f) => [
             'id'        => $f->id,
             'fase'      => $f->nombre,
+            'tipo_id'      => $f->tipoServicio?->id,
             'tipo'      => $f->tipoServicio?->nombre,
             'modalidad' => $f->tipoServicio?->modalidad?->nombre,
         ])

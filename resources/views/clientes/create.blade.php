@@ -211,6 +211,7 @@
         </div>
     </x-slot>
     @push('scripts')
+        {{-- Validación de formulario --}}
         <script>
         document.addEventListener('DOMContentLoaded', () => {
             // -------- Utilidades de validación --------
