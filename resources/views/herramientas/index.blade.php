@@ -87,8 +87,9 @@
         <tr>
             <th>Modalidad del servicio</th>
             <th>Tipo del servicio</th>
+            <th style="width:140px;">Acciones Tipo del servicio</th>
             <th>Fase del servicio</th>
-            <th style="width:140px;">Acciones</th>
+            <th style="width:140px;">Acciones Fase del servicio</th>
         </tr>
         </thead>
         <tbody id="fases_servicio_list" class="text-center">
@@ -238,19 +239,34 @@
             rows.forEach(row => {
                 // Renderizar cada fila
                 tbody.append(`
-                <tr data-id="${row.id}">
+                <tr data-id="${row.id}" data-tipo-id="${row.tipo_id}">
                     <td>${row.modalidad ?? ''}</td>
                     <td>${row.tipo ?? ''}</td>
-                    <td>${row.fase ?? ''}</td>
                     <td style="width:140px">
                     <div class="btn-g">
-                        <button class="btn btn-warning btn-editar">
+                        <button class="btn btn-warning editarTipo">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
                                 <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
                                 <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
                             </svg>
                         </button>
-                        <button class="btn btn-danger btn-eliminar">
+                        <button class="btn btn-danger eliminarTipo">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-archive" viewBox="0 0 16 16">
+                                <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                        </button>
+                    </div>
+                    </td>
+                    <td>${row.fase ?? ''}</td>
+                    <td style="width:140px">
+                    <div class="btn-g">
+                        <button class="btn btn-warning editarFase">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                                <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                            </svg>
+                        </button>
+                        <button class="btn btn-danger eliminarFase">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-archive" viewBox="0 0 16 16">
                                 <path d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5"/>
                             </svg>
@@ -452,30 +468,65 @@
             });
         });
 
-        // Eliminar Fase
-        $(document).on('click', '.btn-eliminar', async function () {
-            const id = $(this).closest('tr').data('id');
+// Eliminar Fase
+$(document).on('click', '.eliminarFase', async function () {
+    const id = $(this).closest('tr').data('id'); // ID de la fase
+    const idTipoServicio = $(this).closest('tr').data('tipo-id'); // ID del tipo de servicio asociado
 
-            const result = await Swal.fire({
-                title: '¿Estás seguro?',
-                text: "Esta acción eliminará la fase de servicio.",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: 'Sí, eliminar',
-                cancelButtonText: 'Cancelar'
-            });
+    // Contar las coincidencias de `tipo-id` en la tabla de fases antes de eliminar la fase
+    const coincidencias = $('#data-table-fases tr[data-tipo-id="' + idTipoServicio + '"]').length;
 
-            if (!result.isConfirmed) return;
+    const result = await Swal.fire({
+        title: '¿Estás seguro?',
+        text: "Esta acción eliminará la fase de servicio.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar'
+    });
 
-            // Realizar la petición de eliminación
-            $.ajax({
-                url: '/fases-servicio/' + id,
-                type: 'DELETE'
-            })
-            .done(function () {
+    if (!result.isConfirmed) return;
+
+    // Si es la última fase del tipo de servicio, eliminamos también el tipo de servicio
+    if (coincidencias === 1) {
+        // Eliminar el tipo de servicio junto con la fase
+        $.ajax({
+            url: '/tipos-servicio/' + idTipoServicio,
+            type: 'DELETE',
+            success: function () {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'El tipo de servicio y la fase han sido eliminados.',
+                    icon: 'success',
+                    confirmButtonText: 'Ok'
+                });
                 cargarTablaFases();
-            })
-            .fail(function (xhr) {
+            },
+            error: function (xhr) {
+                console.error(xhr.responseJSON || xhr.responseText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ocurrió un error al eliminar el tipo de servicio.',
+                    confirmButtonText: 'Ok'
+                });
+            }
+        });
+    } else {
+        // Si hay más de una fase, solo eliminamos la fase
+        $.ajax({
+            url: '/fases-servicio/' + id,
+            type: 'DELETE',
+            success: function () {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: 'La fase de servicio ha sido eliminada.',
+                    icon: 'success',
+                    confirmButtonText: 'Ok'
+                });
+                cargarTablaFases();
+            },
+            error: function (xhr) {
                 console.error(xhr.responseJSON || xhr.responseText);
                 Swal.fire({
                     icon: 'error',
@@ -483,16 +534,16 @@
                     text: 'Ocurrió un error al eliminar la fase.',
                     confirmButtonText: 'Ok'
                 });
-            });
+            }
         });
+    }
+});
 
-
-
-        // Editar Fase (rápido)
-        $(document).on('click', '.btn-editar', function(){
+        // Editar Fase
+        $(document).on('click', '.editarFase', function(){
             const tr = $(this).closest('tr');
-            const id = tr.data('id');
-            const actual = tr.find('td').eq(2).text();
+            const idFase = tr.data('id');
+            const actual = tr.find('td').eq(3).text();
         Swal.fire({
                 title: 'Editar fase',
                 input: 'text',
@@ -513,7 +564,7 @@
                 const nuevo = result.value;
                 // Validación de nombre
                 $.ajax({
-                    url: '/fases-servicio/' + id,
+                    url: '/fases-servicio/' + idFase,
                     type: 'PUT',
                     data: { nombre: nuevo }
                 })
@@ -536,6 +587,103 @@
                         title: 'Error',
                         text: 'Error al actualizar la fase',
                     });
+                });
+            });
+        });
+
+    
+    
+        // Editar Tipo
+        $(document).on('click', '.editarTipo', function(){
+            const tr = $(this).closest('tr');
+            const idTipo = tr.data('tipo-id');
+            const actual = tr.find('td').eq(1).text();
+        Swal.fire({
+                title: 'Editar tipo',
+                input: 'text',
+                inputLabel: 'Nuevo nombre del tipo:',
+                inputValue: actual,
+                showCancelButton: true,
+                confirmButtonText: 'Guardar',
+                cancelButtonText: 'Cancelar',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Debes ingresar un nombre';
+                    }
+                }
+            // Manejo de la respuesta
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+
+                const nuevo = result.value;
+                // Validación de nombre
+                $.ajax({
+                    url: '/tipos-servicio/' + idTipo,
+                    type: 'PUT',
+                    data: { nombre: nuevo }
+                })
+                // Actualización exitosa
+                .done(function () {
+                    cargarTablaFases();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Actualizado',
+                        text: 'El tipo se actualizó correctamente',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                })
+                // Manejo de errores
+                .fail(function (xhr) {
+                    console.error(xhr.responseJSON || xhr.responseText);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Error al actualizar la fase',
+                    });
+                });
+            });
+        });
+
+        // Eliminar Tipo
+        $(document).on('click', '.eliminarTipo', async function () {
+            const id = $(this).closest('tr').data('tipo-id'); // Asegúrate de que el 'data-tipo-id' es correcto
+
+            // Contar las coincidencias de `tipo_id` en la tabla antes de eliminarlo
+            const coincidencias = $('#data-table-fases tr[data-tipo-id="' + id + '"]').length;
+
+            const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: `Este tipo de servicio tiene ${coincidencias} fases de servicio. Esta acción eliminará todas las fases relacionadas.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            });
+
+            if (!result.isConfirmed) return;
+
+            // Realizar la petición de eliminación
+            $.ajax({
+                url: '/tipos-servicio/' + id,
+                type: 'DELETE'
+            })
+            .done(function () {
+                cargarTablaFases(); // Refresca la tabla después de eliminar
+                    Swal.fire({
+                        title: '¡Éxito!',
+                        text: 'Tipo de servicio eliminado',
+                        icon: 'success',
+                        confirmButtonText: 'Ok'
+                    });
+            })
+            .fail(function (xhr) {
+                console.error(xhr.responseJSON || xhr.responseText);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Ocurrió un error al eliminar el tipo.',
+                    confirmButtonText: 'Ok'
                 });
             });
         });

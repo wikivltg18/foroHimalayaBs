@@ -159,7 +159,7 @@ public function store(StoreUserRequest $request)
         $role = Role::findOrFail($roleId);
 
         // Extrae los campos necesarios del formulario
-        $data = $request->only(['foto_perfil','name', 'email', 'telefono', 'f_nacimiento']);
+        $data = $request->only(['foto_perfil','name', 'email', 'password', 'telefono', 'f_nacimiento']);
 
         // Procesar foto si existe y actualizarlo
         $fotoPath = $user->foto_perfil;
@@ -185,7 +185,6 @@ public function store(StoreUserRequest $request)
         if ($request->filled('password')) {
             $data['password'] = bcrypt($request->input('password'));
         }
-
         
         // Actualiza el usuario con los datos recopilados
         $user->update($data);

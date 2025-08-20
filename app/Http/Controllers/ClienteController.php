@@ -60,6 +60,7 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
+        
         // Validación de los datos
         $request->validate([
             'logo'               => 'nullable|image|max:2048', // 2MB
@@ -75,7 +76,7 @@ class ClienteController extends Controller
             'url_facebook'       => 'nullable|url|max:255',
             'url_youtube'        => 'nullable|url|max:255',
         ]);
-
+        
         try {
         // Guardar dentro de una transacción
         DB::transaction(function () use ($request) {

@@ -168,8 +168,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/tipos-servicio', [TipoServicioController::class, 'index']);
     Route::post('/tipos-servicio', [TipoServicioController::class, 'store']);
-    Route::put('/tipos-servicio/{tipo_servicio}', [TipoServicioController::class, 'update'])->whereNumber('tipo_servicio');
-    Route::delete('/tipos-servicio/{tipo_servicio}', [TipoServicioController::class, 'destroy'])->whereNumber('tipo_servicio');
+    Route::put('/tipos-servicio/{tipo}', [TipoServicioController::class, 'update'])->whereNumber('tipo');
+    Route::delete('/tipos-servicio/{tipo}', [TipoServicioController::class, 'destroy'])->whereNumber('tipo');
 
     Route::get('/fases-servicio', [FaseServicioController::class, 'index']);
     Route::post('/fases-servicio', [FaseServicioController::class, 'store']);
