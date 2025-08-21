@@ -123,8 +123,8 @@ Route::middleware(['auth'])->delete('/equipo/usuarios/{user}', [GeneralControlle
 
 //Asignar permisos
 Route::middleware(['auth', PermissionMiddleware::class . ':asignar permisos'])->group(function () {
-    Route::get('/permisos', [PermisoController::class, 'asignarPermisos'])->name('permisos');
-    Route::post('/permisos/{role}/permissions/update', [PermisoController::class, 'updatePermissions'])->name('roles.updatePermissions');
+    Route::get('/permisos', [PermisoController::class, 'asignarPermisos'])->name('permisos.index');
+    Route::post('/permisos/{roleId}/permissions/update', [PermisoController::class, 'updatePermissions'])->name('permisos.updatePermissions')->where('roleId', '[0-9]+');
 });
 
 
