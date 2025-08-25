@@ -55,10 +55,14 @@ class RolesAndPermissionsSeeder extends Seeder
         Permission::create(['name' => 'modificar rol']);
         Permission::create(['name' => 'eliminar rol']);
 
-        // Crear permisos para el modelo Tipos y fases de servicios
+        // Crear permisos para los modelos Modalidad, Tipos y Fases de servicios
+        Permission::create(['name' =>'consultar modalidad' ]);
         Permission::create(['name' =>'registrar tipo de servicio' ]);
         Permission::create(['name' =>'modificar tipo de servicio' ]);
         Permission::create(['name' =>'eliminar tipo de servicio' ]);
+        Permission::create(['name' =>'consultar fase de servicio' ]);
+        Permission::create(['name' =>'consultar tipo de servicio' ]);
+        Permission::create(['name' =>'gestiòn tipos y fases de servicio' ]);
         Permission::create(['name' =>'registrar fase de servicio' ]);
         Permission::create(['name' =>'modificar fase de servicio' ]);
         Permission::create(['name' =>'eliminar fase de servicio' ]);

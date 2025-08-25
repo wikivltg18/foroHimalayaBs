@@ -2,19 +2,17 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Permission;
-
-namespace App\Http\Controllers;
-
-use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 
 class RoleController extends Controller
 {
     public function index(Request $request)
     {
+        if (!Auth::user()->can('consultar roles')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Obtener el término de búsqueda si existe
         $busqueda = $request->input('buscar');
 
@@ -33,6 +31,9 @@ class RoleController extends Controller
 
     public function create()
     {
+        if (!Auth::user()->can('registrar rol')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Retornar la vista para crear un nuevo rol
         return view('equipo.roles.create');
     }
@@ -40,6 +41,9 @@ class RoleController extends Controller
     // Almacenar un nuevo rol en la base de datos
     public function store(Request $request)
     {
+        if (!Auth::user()->can('registrar rol')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Validar la entrada
         $request->validate([
             'name' => 'required|unique:roles,name',
@@ -55,12 +59,18 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
+        if (!Auth::user()->can('modificar rol')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Retornar la vista para editar el rol
         return view('equipo.roles.edit', compact('role'));
     }
 
     public function update(Request $request, Role $role)
     {
+        if (!Auth::user()->can('modificar rol')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Validar la entrada
         $request->validate([
             'name' => 'required|unique:roles,name,' . $role->id,
@@ -75,6 +85,9 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        if (!Auth::user()->can('eliminar rol')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Eliminar el rol
         $role->delete();
         // Redirigir con un mensaje de éxito
