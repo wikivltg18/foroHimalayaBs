@@ -1,4 +1,5 @@
 <x-guest-layout>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 <div class="col-sm-12 col-md-6 order-sm-2 order-md-1" style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center;">
     <!-- Session Status -->
     @if (session('status'))
@@ -26,12 +27,16 @@
             @enderror
         </div>
         <!-- Password -->
-        <div class="mb-3">
+        <div class="mb-3 position-relative">
             <input type="password" class="form-control" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+            <button type="button" class="btn position-absolute end-0 top-50 translate-middle-y" onclick="togglePassword()" style="background: none; border: none;">
+                <i class="fas fa-eye" id="togglePassword"></i>
+            </button>
             @error('password')
                 <div class="mt-1 text-danger small">{{ $message }}</div>
             @enderror
         </div>
+        
         <!-- Actions -->
         <div class="d-flex justify-content-between align-items-center">
         <!-- Remember Me -->
@@ -56,4 +61,22 @@
         <img src="{{ asset('/img/Login.svg') }}" alt="Login" class="img-fluid mx-auto d-block" style="max-width: 80%; height: auto;">
     </a>
 </div>
+@push('scripts')
+            <script>
+            function togglePassword() {
+                const passwordInput = document.getElementById('password');
+                const toggleIcon = document.getElementById('togglePassword');
+                
+                if (passwordInput.type === 'password') {
+                    passwordInput.type = 'text';
+                    toggleIcon.classList.remove('fa-eye');
+                    toggleIcon.classList.add('fa-eye-slash');
+                } else {
+                    passwordInput.type = 'password';
+                    toggleIcon.classList.remove('fa-eye-slash');
+                    toggleIcon.classList.add('fa-eye');
+                }
+            }
+        </script>
+@endpush
 </x-guest-layout>

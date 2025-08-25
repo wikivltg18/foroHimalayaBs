@@ -18,5 +18,6 @@
     <div class="row">
         {{ $slot }}
     </div>
+    @stack('scripts')
 </body>
 </html>
