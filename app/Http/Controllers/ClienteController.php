@@ -9,6 +9,7 @@ use App\Models\EstadoCliente;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
 
 class ClienteController extends Controller
 {
@@ -17,6 +18,9 @@ class ClienteController extends Controller
      */
     public function index(Request $request)
     {
+        if (!Auth::user()->can('consultar clientes')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Obtener parámetros de búsqueda y paginación
         $buscar   = $request->input('buscar');
         $estado   = $request->input('estado');
@@ -40,6 +44,9 @@ class ClienteController extends Controller
      */
     public function create()
     {
+        if (!Auth::user()->can('registrar cliente')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Cargar usuarios con cargo "Director Ejecutivo"
         $usuarios = User::where('id_cargo', 6)
             ->orWhereHas('cargo', function ($query) {
@@ -60,6 +67,9 @@ class ClienteController extends Controller
      */
     public function store(Request $request)
     {
+        if (!Auth::user()->can('registrar cliente')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         
         // Validación de los datos
         $request->validate([
@@ -136,6 +146,9 @@ class ClienteController extends Controller
      */
     public function edit(Cliente $cliente)
     {
+        if (!Auth::user()->can('modificar cliente')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Cargar usuarios con cargo "Director Ejecutivo"
         $usuarios = User::where('id_cargo', 6)
             ->orWhereHas('cargo', function ($query) {
@@ -156,6 +169,9 @@ class ClienteController extends Controller
      */
     public function update(Request $request, Cliente $cliente)
     {
+        if (!Auth::user()->can('modificar cliente')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
         // Validación de los datos recibidos del formulario de edición del cliente
         $request->validate([
             'logo'               => 'nullable|image|max:2048',
@@ -235,6 +251,9 @@ class ClienteController extends Controller
      */
     public function destroy(Cliente $cliente)
 {
+    if (!Auth::user()->can('eliminar cliente')) {
+        return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+    }
     try {
         DB::transaction(function () use ($cliente) {
             // Eliminar logo físico si existe

@@ -9,6 +9,7 @@ use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ModalidadController;
+use App\Http\Controllers\HerramientaController;
 use App\Http\Controllers\FaseServicioController;
 use App\Http\Controllers\TipoServicioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
@@ -28,45 +29,45 @@ Route::get('/dashboard', function () {
 //__/ÁREAS/__//
 
 // Consultar áreas
-Route::middleware(['auth', PermissionMiddleware::class . ':consultar áreas'])
+Route::middleware(['auth'])
     ->get('/equipo/areas', [AreaController::class, 'index'])
     ->name('equipo.areas.index');
 
 // Registrar área (crear y guardar)
-Route::middleware(['auth', PermissionMiddleware::class . ':registrar área'])
+Route::middleware(['auth'])
     ->group(function () {
         Route::get('/equipo/areas/create', [AreaController::class, 'create'])->name('equipo.areas.create');
         Route::post('/equipo/areas', [AreaController::class, 'store'])->name('equipo.areas.store');
     });
 
 // Modificar área (editar y actualizar)
-Route::middleware(['auth', PermissionMiddleware::class . ':modificar área'])
+Route::middleware(['auth'])
     ->group(function () {
         Route::get('/equipo/areas/{area}/edit', [AreaController::class, 'edit'])->name('equipo.areas.edit');
         Route::put('/equipo/areas/{area}', [AreaController::class, 'update'])->name('equipo.areas.update');
     });
 
 // Eliminar área
-Route::middleware(['auth', PermissionMiddleware::class . ':eliminar área'])
+Route::middleware(['auth'])
     ->delete('/equipo/areas/{area}', [AreaController::class, 'destroy'])
     ->name('equipo.areas.destroy');
 
 //__/CARGOS/__//
 
 //consultar cargos
-Route::middleware(['auth', PermissionMiddleware::class . ':consultar cargos'])
+Route::middleware(['auth'])
 ->get('/equipo/cargos', [CargoController::class, 'index'])
 ->name('equipo.cargos.index');
 
 //registrar cargo (crear y guardar)
-Route::middleware(['auth', PermissionMiddleware::class . ':registrar cargo'])
+Route::middleware(['auth'])
     ->group(function () {
         Route::get('/equipo/cargos/create', [CargoController::class, 'create'])->name('equipo.cargos.create');
         Route::post('/equipo/cargos', [CargoController::class, 'store'])->name('equipo.cargos.store');
     });
 
 // Modificar cargo (editar y actualizar)
-Route::middleware(['auth', PermissionMiddleware::class . ':modificar cargo'])->group(function(){
+Route::middleware(['auth'])->group(function(){
     Route::get('/equipo/cargos/{cargo}/edit', [CargoController::class, 'edit'])->name('equipo.cargos.edit');
     Route::put('/equipo/cargos/{cargo}', [CargoController::class, 'update'])->name('equipo.cargos.update');
 });
@@ -79,24 +80,24 @@ Route::middleware(['auth', PermissionMiddleware::class . ':eliminar cargo'])
 //__/ROLES/__//
 
 //registrar role (crear y guardar)
-Route::middleware(['auth', PermissionMiddleware::class . ':registrar rol'])->group(function(){
+Route::middleware(['auth'])->group(function(){
     Route::get('/equipo/roles/create', [RoleController::class, 'create'])->name('equipo.roles.create');
     Route::post('/equipo/roles', [RoleController::class, 'store'])->name('equipo.roles.store');
 });
 
 // Modificar role (editar y actualizar)
-Route::middleware(['auth', PermissionMiddleware::class . ':modificar rol'])->group(function(){
+Route::middleware(['auth'])->group(function(){
     Route::get('/equipo/roles/{role}/edit', [RoleController::class, 'edit'])->name('equipo.roles.edit');
     Route::put('/equipo/roles/{role}', [RoleController::class, 'update'])->name('equipo.roles.update');
 });
 
 //Consultar role
-Route::middleware(['auth', PermissionMiddleware::class . ':consultar roles'])
+Route::middleware(['auth'])
 ->get('/equipo/roles', [RoleController::class, 'index'])->name('equipo.roles.index');
 
 
 // Eliminar role
-Route::middleware(['auth', PermissionMiddleware::class . ':eliminar rol'])
+Route::middleware(['auth'])
 ->delete('/equipo/cargos/{role}', [RoleController::class, 'destroy'])
 ->name('equipo.roles.destroy');
 
@@ -122,11 +123,10 @@ Route::middleware(['auth'])->get('/equipo/usuarios', [GeneralController::class, 
 Route::middleware(['auth'])->delete('/equipo/usuarios/{user}', [GeneralController::class, 'destroy'])->name('equipo.usuarios.destroy');
 
 //Asignar permisos
-Route::middleware(['auth', PermissionMiddleware::class . ':asignar permisos'])->group(function () {
+Route::middleware(['auth'])->group(function () {
     Route::get('/permisos', [PermisoController::class, 'asignarPermisos'])->name('permisos.index');
     Route::post('/permisos/{roleId}/permissions/update', [PermisoController::class, 'updatePermissions'])->name('permisos.updatePermissions')->where('roleId', '[0-9]+');
 });
-
 
 // Perfil
 Route::middleware('auth')->group(function () {
@@ -159,9 +159,8 @@ Route::middleware(['auth'])->delete('/clientes/{cliente}', [ClienteController::c
 
 //__/HERRAMIENTAS/__//
 
-Route::get('/herramientas', fn () => view('herramientas.index'))
-    ->middleware(['auth', 'verified'])
-    ->name('herramientas.index');
+Route::middleware(['auth', 'verified'])->get('/herramientas', [HerramientaController::class, 'index'])->name('herramientas.index');
+
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/modalidades', [ModalidadController::class, 'index']);

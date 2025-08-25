@@ -3,9 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
-use Spatie\Permission\Models\Permission;
 use Illuminate\Support\Facades\DB;
+use Spatie\Permission\Models\Role;
+use Illuminate\Support\Facades\Auth;
+use Spatie\Permission\Models\Permission;
 
 /**
  * Controlador para la gestión de permisos de roles
@@ -25,6 +26,10 @@ class PermisoController extends Controller
      */
     public function asignarPermisos()
     {
+        if (!Auth::user()->can('asignar permisos')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
+
         // Obtener todos los roles disponibles en el sistema
         $roles = Role::all();
 
@@ -54,6 +59,10 @@ class PermisoController extends Controller
      */
     public function updatePermissions(Request $request, $roleId)
     {
+        if (!Auth::user()->can('asignar permisos')) {
+            return redirect()->route('dashboard')->with('error', 'No tienes acceso a este módulo.');
+        }
+
         try {
             // Registrar el inicio de la operación y los datos recibidos
             \Log::info('Iniciando actualización de permisos para el rol: ' . $roleId);

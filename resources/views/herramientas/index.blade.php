@@ -285,7 +285,7 @@
             })
             // Manejo de errores
             .fail(function(){
-            tbody.html('<tr><td colspan="4" class="text-danger text-center">Error al cargar fases</td></tr>');
+            tbody.html('<tr><td colspan="5" class="text-danger text-center">Error al cargar fases</td></tr>');
             $('#fases_pagination').empty();
             });
         }

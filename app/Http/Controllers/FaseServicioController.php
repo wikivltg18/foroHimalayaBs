@@ -4,15 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\FaseServicio;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class FaseServicioController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Muestra una lista paginada de todas las fases de servicio.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
      */
-public function index(Request $request)
-{
-    // Construcción de la consulta con relaciones
+    public function index(Request $request)
+    {
+        // Evaluar si el usuario tiene permiso para consultar fases de servicio
+        if (!Auth::user()->can('consultar fase de servicio')) {
+            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+        }
+
+        // Construcción de la consulta con relaciones
     $query = FaseServicio::with([
         'tipoServicio:id,modalidad_id,nombre',
         'tipoServicio.modalidad:id,nombre'
@@ -58,14 +67,25 @@ public function index(Request $request)
     /**
      * Store a newly created resource in storage.
      */
+    /**
+     * Almacena una nueva fase de servicio en la base de datos.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function store(Request $request)
-{
-    // Validación de datos
-    $data = $request->validate([
-        'tipo_servicio_id' => 'required|exists:tipo_servicios,id',
-        'nombre' => 'required|string|max:150',
-        'descripcion' => 'nullable|string'
-    ]);
+    {
+        // Evaluar si el usuario tiene permiso para registrar fase de servicio
+        if (!Auth::user()->can('registrar fase de servicio')) {
+            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+        }
+
+        // Validación de datos
+        $data = $request->validate([
+            'tipo_servicio_id' => 'required|exists:tipo_servicios,id',
+            'nombre' => 'required|string|max:150',
+            'descripcion' => 'nullable|string'
+        ]);
     
     // Creación de la fase de servicio
     $fase = FaseServicio::create($data);
@@ -77,8 +97,20 @@ public function index(Request $request)
     /**
      * Update the specified resource in storage.
      */
+    /**
+     * Actualiza una fase de servicio específica en la base de datos.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function update(Request $request, $id)
     {
+        // Evaluar si el usuario tiene permiso para modificar fase de servicio
+        if (!Auth::user()->can('modificar fase de servicio')) {
+            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+        }
+
         // Validación de datos
         $request->validate([
             'nombre' => 'required|string|max:255',
@@ -96,8 +128,19 @@ public function index(Request $request)
      * Remove the specified resource from storage.
      */
     
+    /**
+     * Elimina una fase de servicio específica de la base de datos.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function destroy($id)
     {
+        // Evaluar si el usuario tiene permiso para eliminar fase de servicio
+        if (!Auth::user()->can('eliminar fase de servicio')) {
+            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+        }
+
         try {
             // Eliminación de la fase de servicio
             $faseDeServicio = FaseServicio::findOrFail($id);
