@@ -18,50 +18,50 @@ class FaseServicioController extends Controller
     {
         // Evaluar si el usuario tiene permiso para consultar fases de servicio
         if (!Auth::user()->can('consultar fase de servicio')) {
-            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+            return response()->json(['redirect' => route('dashboard'), 'error' => 'No tienes acceso a este módulo.']);
         }
 
         // Construcción de la consulta con relaciones
-    $query = FaseServicio::with([
-        'tipoServicio:id,modalidad_id,nombre',
-        'tipoServicio.modalidad:id,nombre'
-    ]);
+        $query = FaseServicio::with([
+            'tipoServicio:id,modalidad_id,nombre',
+            'tipoServicio.modalidad:id,nombre'
+        ]);
 
-    // Filtro por nombre de fase
-    if ($request->filled('buscarFaseDeServicio')) {
-        $query->where('nombre', 'like', '%' . $request->buscarFaseDeServicio . '%');
+        // Filtro por nombre de fase
+        if ($request->filled('buscarFaseDeServicio')) {
+            $query->where('nombre', 'like', '%' . $request->buscarFaseDeServicio . '%');
+        }
+
+        // Filtro por nombre de tipo de servicio
+        if ($request->filled('buscarTipoDeServicio')) {
+            $query->whereHas('tipoServicio', function ($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->buscarTipoDeServicio . '%');
+            });
+        }
+
+        // Filtro por nombre de modalidad
+        if ($request->filled('buscarModalidad')) {
+            $query->whereHas('tipoServicio.modalidad', function ($q) use ($request) {
+                $q->where('nombre', 'like', '%' . $request->buscarModalidad . '%');
+            });
+        }
+
+        // Paginación y ordenamiento
+        $paginator = $query->orderByDesc('id')->paginate(5); // 5 por página
+
+        // Transformación de datos para la respuesta
+        $paginator->setCollection(
+            $paginator->getCollection()->map(fn($f) => [
+                'id'        => $f->id,
+                'fase'      => $f->nombre,
+                'tipo_id'      => $f->tipoServicio?->id,
+                'tipo'      => $f->tipoServicio?->nombre,
+                'modalidad' => $f->tipoServicio?->modalidad?->nombre,
+            ])
+        );
+        // Respuesta JSON
+        return response()->json($paginator);
     }
-
-    // Filtro por nombre de tipo de servicio
-    if ($request->filled('buscarTipoDeServicio')) {
-        $query->whereHas('tipoServicio', function ($q) use ($request) {
-            $q->where('nombre', 'like', '%' . $request->buscarTipoDeServicio . '%');
-        });
-    }
-
-    // Filtro por nombre de modalidad
-    if ($request->filled('buscarModalidad')) {
-        $query->whereHas('tipoServicio.modalidad', function ($q) use ($request) {
-            $q->where('nombre', 'like', '%' . $request->buscarModalidad . '%');
-        });
-    }
-
-    // Paginación y ordenamiento
-    $paginator = $query->orderByDesc('id')->paginate(5); // 5 por página
-
-    // Transformación de datos para la respuesta
-    $paginator->setCollection(
-        $paginator->getCollection()->map(fn($f) => [
-            'id'        => $f->id,
-            'fase'      => $f->nombre,
-            'tipo_id'      => $f->tipoServicio?->id,
-            'tipo'      => $f->tipoServicio?->nombre,
-            'modalidad' => $f->tipoServicio?->modalidad?->nombre,
-        ])
-    );
-    // Respuesta JSON
-    return response()->json($paginator);
-}
 
 
     /**
@@ -77,7 +77,7 @@ class FaseServicioController extends Controller
     {
         // Evaluar si el usuario tiene permiso para registrar fase de servicio
         if (!Auth::user()->can('registrar fase de servicio')) {
-            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+            return response()->json(['redirect' => route('dashboard'), 'error' => 'No tienes acceso a este módulo.']);
         }
 
         // Validación de datos
@@ -86,13 +86,13 @@ class FaseServicioController extends Controller
             'nombre' => 'required|string|max:150',
             'descripcion' => 'nullable|string'
         ]);
-    
-    // Creación de la fase de servicio
-    $fase = FaseServicio::create($data);
-    
-    // Respuesta JSON con la nueva fase
-    return response()->json(['data' => $fase], 201);
-}
+
+        // Creación de la fase de servicio
+        $fase = FaseServicio::create($data);
+
+        // Respuesta JSON con la nueva fase
+        return response()->json(['data' => $fase], 201);
+    }
 
     /**
      * Update the specified resource in storage.
@@ -108,7 +108,7 @@ class FaseServicioController extends Controller
     {
         // Evaluar si el usuario tiene permiso para modificar fase de servicio
         if (!Auth::user()->can('modificar fase de servicio')) {
-            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+            return response()->json(['redirect' => route('dashboard'), 'error' => 'No tienes acceso a este módulo.']);
         }
 
         // Validación de datos
@@ -116,6 +116,7 @@ class FaseServicioController extends Controller
             'nombre' => 'required|string|max:255',
             'descripcion' => 'nullable|string',
         ]);
+
         // Actualización de la fase de servicio
         $faseDeServicio = FaseServicio::findOrFail($id);
         $faseDeServicio->update($request->all());
@@ -127,7 +128,7 @@ class FaseServicioController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    
+
     /**
      * Elimina una fase de servicio específica de la base de datos.
      *
@@ -138,7 +139,7 @@ class FaseServicioController extends Controller
     {
         // Evaluar si el usuario tiene permiso para eliminar fase de servicio
         if (!Auth::user()->can('eliminar fase de servicio')) {
-            return response()->json(['redirect' => route('dashboard'),'error' => 'No tienes acceso a este módulo.']);
+            return response()->json(['redirect' => route('dashboard'), 'error' => 'No tienes acceso a este módulo.']);
         }
 
         try {
@@ -155,5 +156,4 @@ class FaseServicioController extends Controller
             ], 500);
         }
     }
-
 }

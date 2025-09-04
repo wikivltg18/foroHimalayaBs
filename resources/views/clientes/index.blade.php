@@ -69,17 +69,17 @@
                                     <td>{{ $cliente->telefono }}</td>
                                     <td>{{ $cliente->usuario->name }}</td>
                                     <td>{{ $cliente->estado->nombre ?? 'Sin estado' }}</td>
-                                    <td>
-                                        @forelse ($cliente->tiposContrato as $contrato)
-                                            @if ($contrato->nombre === 'Equipo dedicado')
-                                                <a class="btn btn-dark mb-1" href="#">{{ $contrato->nombre }}</a>
-                                            @else
-                                                <a class="btn btn-secondary mb-1" href="#">{{ $contrato->nombre }}</a>
-                                            @endif
-                                        @empty
-                                            <span class="text-muted">Sin contratos</span>
-                                        @endforelse
-                                    </td>
+<td>
+    @forelse ($cliente->tiposContrato as $contrato)
+        @if ($contrato->id === 1)
+            <a class="btn btn-dark mb-1" href="{{ route('config.equipo.index', $cliente->id) }}">{{ $contrato->nombre }}</a>
+        @elseif ($contrato->id === 2)
+            <a class="btn btn-secondary mb-1" href="{{ route('config.servicios.index', $cliente->id) }}">{{ $contrato->nombre }}</a>
+        @endif
+    @empty
+        <span class="text-muted">Sin contratos</span>
+    @endforelse
+</td>
                                     <td>
                                         <a href="{{ route('clientes.edit', $cliente->id) }}" class="btn btn-warning">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
