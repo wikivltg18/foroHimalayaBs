@@ -247,22 +247,11 @@ class ServiciosConfigController extends Controller
 
     public function destroy(Cliente $cliente, Servicio $servicio)
     {
-        // Verificar que el servicio pertenece al cliente
         abort_unless($servicio->cliente_id === $cliente->id, 404);
 
-        // Iniciar transacción para eliminar todo lo relacionado con el servicio
-        DB::transaction(function () use ($servicio) {
-            // Eliminar las fases del servicio (dependiendo de cómo hayas estructurado la relación)
-            $servicio->fases()->delete();  // Si usas SoftDeletes, utiliza 'softDelete' en lugar de 'delete'
+        // Eliminar el servicio de manera "soft delete"
+        $servicio->delete();
 
-            // Eliminar el mapa de horas (si existe)
-            $servicio->mapa()->delete();  // También si tienes SoftDeletes, usa 'softDelete'
-
-            // Eliminar el servicio en sí
-            $servicio->delete();  // Si usas SoftDeletes
-        });
-
-        // Redirigir al usuario a la lista de servicios con un mensaje de éxito
         return redirect()
             ->route('config.servicios.index', $cliente->id)
             ->with('success', 'Servicio eliminado correctamente.');

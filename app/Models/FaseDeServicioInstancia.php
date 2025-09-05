@@ -5,12 +5,10 @@ namespace App\Models;
 use App\Models\Servicio;
 use App\Models\FaseServicio;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class FaseDeServicioInstancia extends Model
 {
-    use SoftDeletes;
 
     protected $table = 'fases_de_servicio_instancias';
 
