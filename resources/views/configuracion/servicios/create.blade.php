@@ -73,7 +73,12 @@
             <div class="mb-3">
               <div class="fw-bold" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Fases del servicio:
               </div>
-              <div id="fases-preview" class="d-flex flex-column gap-2"></div>
+              <div id="fases-preview" class="d-flex flex-column gap-2 mb-2"></div>
+              <div id="fases-añadidas" class="d-flex flex-column gap-2"></div>
+
+              <button type="button" class="btn rounded border p-0 w-100 mt-2" id="add-fase-btn">+ Añade una
+                fase</button>
+
             </div>
 
             {{-- Botones --}}
@@ -81,6 +86,8 @@
               <button type="submit" class="btn btn-primary">Guardar</button>
               <a href="{{ route('config.servicios.index', $cliente->id) }}" class="btn btn-secondary">Cerrar</a>
             </div>
+            <!-- Campo oculto para fases -->
+            <input type="hidden" name="fases" id="fases-hidden">
           </form>
         </div>
 
@@ -160,6 +167,32 @@
             });
         }
 
+        // Función para recopilar las fases
+        function obtenerFases() {
+          let fases = [];
+
+          // Fases desde el servidor (contenedor fases-preview)
+          $('#fases-preview .badge').each(function () {
+            fases.push($(this).text().trim());
+          });
+
+
+          // Fases añadidas dinámicamente (contenedor fases-añadidas)
+          $('#fases-añadidas .badge').each(function () {
+            fases.push($(this).text().trim());
+          });
+
+          // Coloca las fases en el campo oculto
+          $('#fases-hidden').val(JSON.stringify(fases));
+        }
+
+        // Evento al hacer click en el botón Guardar
+        $('#form-servicio').on('submit', function (e) {
+          // Antes de enviar el formulario, recogemos las fases
+          obtenerFases();
+
+        });
+
         // Eventos
         $(document).on('change', 'input[name="modalidad_id"]', function () {
           cargarTipos($(this).val(), '');
@@ -175,6 +208,29 @@
         } else if (ctx.modalidadInicial) {
           cargarTipos(ctx.modalidadInicial, '');
         }
+
+        let modoAgregar = true;
+
+        $('#add-fase-btn').on('click', function () {
+          if (modoAgregar) {
+            // Insertar el input al final del contenedor
+            const inputHtml = `<div id="fase-input-wrapper" class="d-flex align-items-center gap-2"><input type="text" class="form-control" id="nueva-fase" placeholder="Nombre de la fase"></div>`;
+            $('#fases-añadidas').append(inputHtml);
+            $(this).text('Guardar fase');
+            modoAgregar = false;
+          } else {
+            const valor = $('#nueva-fase').val().trim();
+            if (valor !== '') {
+              const faseHtml = `<div class="badge p-2 rounded" style="color:#003B7B; background-color:#DDF7FF;">${valor}</div>`;
+              $('#fase-input-wrapper').remove(); // Eliminar el input
+              $('#fases-añadidas').append(faseHtml); // Añadir la fase al final
+              $(this).text('Añadir fase');
+              modoAgregar = true;
+            } else {
+              alert('Por favor ingresa un nombre para la fase.');
+            }
+          }
+        });
       });
     </script>
   @endpush

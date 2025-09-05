@@ -14,7 +14,24 @@ return new class extends Migration
         Schema::create('fases_de_servicio_instancias', function (Blueprint $table) {
             $table->id();
 
+            $table->unsignedBigInteger('servicio_id');
+            $table->unsignedBigInteger('fase_servicio_id');
+
+            $table->string('nombre');
+            $table->text('descripcion')->nullable();
+            $table->integer('posicion')->default(0);
+
             $table->timestamps();
+
+            $table->foreign('servicio_id')
+                ->references('id')
+                ->on('servicios')
+                ->onDelete('cascade');
+
+            $table->foreign('fase_servicio_id')
+                ->references('id')
+                ->on('fases_de_servicio')
+                ->onDelete('cascade');
         });
     }
 
