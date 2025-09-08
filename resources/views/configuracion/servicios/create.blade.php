@@ -73,13 +73,37 @@
             <div class="mb-3">
               <div class="fw-bold" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Fases del servicio:
               </div>
-              <div id="fases-preview" class="d-flex flex-column gap-2 mb-2"></div>
-              <div id="fases-añadidas" class="d-flex flex-column gap-2"></div>
-
-              <button type="button" class="btn rounded border p-0 w-100 mt-2" id="add-fase-btn">+ Añade una
-                fase</button>
-
+              <div id="fases-preview" class="d-flex flex-column gap-2 mb-2">
+                <div class="sortable-list">
+                  <!-- Las fases se agregarán aquí -->
+                </div>
+              </div>
             </div>
+
+            <!-- Template para las fases -->
+            <template id="fase-template">
+              <div class="badge p-2 rounded sortable-item d-flex align-items-center"
+                style="color:#003B7B; background-color:#DDF7FF; cursor: move; user-select: none; margin-bottom: 5px;"
+                data-fase-id="">
+                <i class="fas fa-grip-vertical me-2 handle" style="cursor: grab;"></i>
+                <span class="fase-nombre flex-grow-1"></span>
+              </div>
+            </template>
+
+            <style>
+              .sortable-ghost {
+                opacity: 0.4;
+                background-color: #c8e9ff !important;
+              }
+
+              .sortable-chosen {
+                background-color: #b3e0ff !important;
+              }
+
+              .sortable-drag {
+                cursor: grabbing !important;
+              }
+            </style>
 
             {{-- Botones --}}
             <div class="d-flex gap-2 mt-4">
@@ -100,16 +124,20 @@
     </div>
   </x-slot>
 
+  {{-- Font Awesome --}}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
   @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script>
       $(function () {
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-
-        const $tipo = $('#tipo_servicio');
-        const $fPrev = $('#fases-preview');
-
-        const ctx = (() => {
+        $.ajaxSetup({
+          headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+          }
+        });
+        const $tipo = $('#tipo_servicio'); const $fPrev = $('#fases-preview'); const ctx = (() => {
           const $ctx = $('#ctx');
           return {
             clienteId: $ctx.data('cliente'),
@@ -125,20 +153,76 @@
 
         const toList = (res) => Array.isArray(res) ? res : (res?.tipos ?? res?.fases ?? []);
 
+        let sortable = null;
+
+        function initSortable() {
+          if (sortable) {
+            sortable.destroy();
+          }
+
+          const container = $fPrev.find('.sortable-list')[0];
+          if (!container) return;
+
+          sortable = new Sortable(container, {
+            animation: 150,
+            handle: '.handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            forceFallback: false,
+            fallbackClass: 'sortable-fallback',
+            onEnd: function (evt) {
+              // Actualizar las posiciones después de ordenar
+              const fases = obtenerFases();
+              console.log('Nuevo orden de fases:', fases);
+            }
+          });
+        }
+
         function paintFases(list) {
-          $fPrev.empty();
+          const $container = $fPrev.find('.sortable-list');
+          $container.empty();
+
           if (!list.length) {
-            $fPrev.append('<div class="text-muted">Este tipo no tiene fases configuradas.</div>');
+            $container.append('<div class="text-muted">Este tipo no tiene fases configuradas.</div>');
             return;
           }
-          list.forEach(f => $fPrev.append(`<div class="badge p-2 rounded" style="color:#003B7B; background-color:#DDF7FF;">${f.nombre ?? '(sin nombre)'}</div>`));
+
+          const template = document.getElementById('fase-template');
+
+          list.forEach(f => {
+            const clone = document.importNode(template.content, true);
+            const faseElement = clone.querySelector('.sortable-item');
+
+            faseElement.dataset.faseId = f.id;
+            faseElement.dataset.nombre = f.nombre;
+            faseElement.dataset.descripcion = f.descripcion || '';
+            faseElement.querySelector('.fase-nombre').textContent = f.nombre;
+
+            $container.append(faseElement);
+          });
+
+          // Inicializar Sortable después de agregar las fases
+          if (list.length > 0) {
+            initSortable();
+          }
         }
 
         function cargarFases(tipoId) {
-          if (!tipoId) { paintFases([]); return; }
+          if (!tipoId) {
+            paintFases([]);
+            return;
+          }
           const url = URLS.fasesPorTipo.replace('TIP_PLACE', encodeURIComponent(tipoId));
-          $.get(url).done(res => paintFases(toList(res)))
-            .fail(() => $fPrev.html('<div class="text-muted">No se pudieron cargar las fases.</div>'));
+          $.get(url)
+            .done(res => paintFases(toList(res)))
+            .fail(() => {
+              $fPrev.html('<div class="text-muted">No se pudieron cargar las fases.</div>');
+              if (sortable) {
+                sortable.destroy();
+                sortable = null;
+              }
+            });
         }
 
         function setTipos(items, selected) {
@@ -167,30 +251,32 @@
             });
         }
 
-        // Función para recopilar las fases
+        // Función para recopilar las fases del preview
         function obtenerFases() {
           let fases = [];
 
-          // Fases desde el servidor (contenedor fases-preview)
-          $('#fases-preview .badge').each(function () {
-            fases.push($(this).text().trim());
+          // Obtener todas las fases en el orden actual
+          $('#fases-preview .sortable-item').each(function (index) {
+            const $fase = $(this);
+            fases.push({
+              fase_servicio_id: $fase.data('fase-id'),
+              nombre: $fase.data('nombre'),
+              descripcion: $fase.data('descripcion'),
+              posicion: index + 1
+            });
           });
 
-
-          // Fases añadidas dinámicamente (contenedor fases-añadidas)
-          $('#fases-añadidas .badge').each(function () {
-            fases.push($(this).text().trim());
-          });
-
-          // Coloca las fases en el campo oculto
+          // Actualizar el campo oculto
           $('#fases-hidden').val(JSON.stringify(fases));
+
+          return fases;
         }
 
         // Evento al hacer click en el botón Guardar
         $('#form-servicio').on('submit', function (e) {
-          // Antes de enviar el formulario, recogemos las fases
+          e.preventDefault();
           obtenerFases();
-
+          this.submit();
         });
 
         // Eventos
@@ -208,29 +294,6 @@
         } else if (ctx.modalidadInicial) {
           cargarTipos(ctx.modalidadInicial, '');
         }
-
-        let modoAgregar = true;
-
-        $('#add-fase-btn').on('click', function () {
-          if (modoAgregar) {
-            // Insertar el input al final del contenedor
-            const inputHtml = `<div id="fase-input-wrapper" class="d-flex align-items-center gap-2"><input type="text" class="form-control" id="nueva-fase" placeholder="Nombre de la fase"></div>`;
-            $('#fases-añadidas').append(inputHtml);
-            $(this).text('Guardar fase');
-            modoAgregar = false;
-          } else {
-            const valor = $('#nueva-fase').val().trim();
-            if (valor !== '') {
-              const faseHtml = `<div class="badge p-2 rounded" style="color:#003B7B; background-color:#DDF7FF;">${valor}</div>`;
-              $('#fase-input-wrapper').remove(); // Eliminar el input
-              $('#fases-añadidas').append(faseHtml); // Añadir la fase al final
-              $(this).text('Añadir fase');
-              modoAgregar = true;
-            } else {
-              alert('Por favor ingresa un nombre para la fase.');
-            }
-          }
-        });
       });
     </script>
   @endpush

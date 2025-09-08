@@ -18,15 +18,7 @@ class FaseDeServicioInstancia extends Model
         'fase_servicio_id',
         'nombre',              // legacy (si lo sigues usando)
         'descripcion',         // legacy (si lo sigues usando)
-        'nombre_custom',       // override
-        'descripcion_custom',  // override
         'posicion',
-        'plantilla_snapshot',  // opcional
-        'plantilla_version',   // opcional
-    ];
-
-    protected $casts = [
-        'plantilla_snapshot' => 'array',
     ];
 
     /*

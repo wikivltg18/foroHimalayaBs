@@ -80,8 +80,7 @@
             <small class="text-muted">Los tipos listados corresponden a la modalidad seleccionada.</small>
           </div>
 
-          {{-- Bloque Aquí--}}
-
+          {{-- Fases del servicio --}}
           <div class="mb-4">
             <h5 class="mb-2" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Fases del tipo de
               servicio:<span class="text-danger">*</span>
@@ -89,8 +88,51 @@
             <p id="preview-tipo-titulo" class="mb-1 text-muted">
               Selecciona un tipo para ver sus fases.
             </p>
-            <div id="preview-fases" class="d-flex flex-column gap-1"></div>
+
+            {{-- Formulario para agregar fase --}}
+            <div class="mb-3">
+              <div class="input-group">
+                <input type="text" id="nueva-fase-nombre" class="form-control" placeholder="Nombre de la nueva fase">
+                <input type="text" id="nueva-fase-descripcion" class="form-control"
+                  placeholder="Descripción (opcional)">
+                <button type="button" id="agregar-fase" class="btn btn-primary">
+                  <i class="fas fa-plus"></i> Agregar
+                </button>
+              </div>
+            </div>
+
+            <div id="preview-fases" class="d-flex flex-column gap-2">
+              <div class="sortable-list">
+                <!-- Las fases se agregarán aquí -->
+              </div>
+            </div>
           </div>
+
+          <!-- Template para las fases -->
+          <template id="fase-template">
+            <div class="badge p-2 rounded sortable-item d-flex align-items-center"
+              style="color:#003B7B; background-color:#DDF7FF; cursor: move; user-select: none; margin-bottom: 5px;"
+              data-fase-id="">
+              <i class="fas fa-grip-vertical me-2 handle" style="cursor: grab;"></i>
+              <span class="fase-nombre flex-grow-1"></span>
+              <i class="fas fa-times ms-2 delete-fase" style="cursor: pointer;"></i>
+            </div>
+          </template>
+
+          <style>
+            .sortable-ghost {
+              opacity: 0.4;
+              background-color: #c8e9ff !important;
+            }
+
+            .sortable-chosen {
+              background-color: #b3e0ff !important;
+            }
+
+            .sortable-drag {
+              cursor: grabbing !important;
+            }
+          </style>
 
           {{-- Botones --}}
           <div class="d-flex gap-2 mb-4">
@@ -109,18 +151,21 @@
     </div>
   </x-slot>
 
+  {{-- Font Awesome --}}
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
   @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script>
       $(function () {
-        $.ajaxSetup({ headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') } });
-
-        const $modalidades = $('#modalidades-container');
-        const $tipo = $('#tipo_servicio');
-        const $fases = $('#preview-fases');
-        const $tituloPreview = $('#preview-tipo-titulo');
-
-        const ctx = (() => {
+        $.ajaxSetup({
+          headers: {
+            'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+          }
+        });
+        const $modalidades = $('#modalidades-container'); const $tipo = $('#tipo_servicio'); const $fases = $('#preview-fases');
+        const $tituloPreview = $('#preview-tipo-titulo'); const ctx = (() => {
           const $ctx = $('#ctx');
           return {
             clienteId: $ctx.data('cliente'),
@@ -145,17 +190,95 @@
           });
         }
 
+        let sortable = null;
+
+        function initSortable() {
+          if (sortable) {
+            sortable.destroy();
+          }
+
+          const container = $fases.find('.sortable-list')[0];
+          if (!container) return;
+
+          sortable = new Sortable(container, {
+            animation: 150,
+            handle: '.handle',
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass: 'sortable-drag',
+            forceFallback: false,
+            fallbackClass: 'sortable-fallback',
+            onEnd: function (evt) {
+              obtenerFases();
+            }
+          });
+        }
+
         function renderFases(items, titulo = null) {
-          $fases.empty();
+          const $container = $fases.find('.sortable-list');
+          $container.empty();
+
           if (titulo) $tituloPreview.html(`<strong>${titulo}</strong>`);
+
           if (!items.length) {
-            $fases.html('<span class="text-muted">Este tipo no tiene fases de plantilla.</span>');
+            $container.html('<span class="text-muted">Este tipo no tiene fases de plantilla.</span>');
             return;
           }
+
+          const template = document.getElementById('fase-template');
+
           items.forEach(f => {
-            const nombre = f.nombre ?? '(sin nombre)';
-            $fases.append(`<span class="badge px-3 py-2 rounded-pill" style="color:#003B7B; background-color:#DDF7FF;">${nombre}</span>`);
+            const clone = document.importNode(template.content, true);
+            const faseElement = clone.querySelector('.sortable-item');
+
+            // Para fases nuevas o personalizadas, usar null explícitamente
+            faseElement.dataset.faseId = f.fase_servicio_id !== null ? f.fase_servicio_id : 'null';
+            faseElement.dataset.nombre = f.nombre;
+            faseElement.dataset.descripcion = f.descripcion || '';
+            faseElement.querySelector('.fase-nombre').textContent = f.nombre;
+
+            $container.append(faseElement);
           });
+
+          // Inicializar Sortable después de agregar las fases
+          if (items.length > 0) {
+            initSortable();
+          }
+        }
+
+        function obtenerFases() {
+          let fases = [];
+
+          // Obtener todas las fases en el orden actual
+          $('#preview-fases .sortable-list .sortable-item').each(function (index) {
+            const $fase = $(this);
+            const faseId = $fase.data('fase-id');
+
+            // Convertir el fase_servicio_id correctamente
+            let fase_servicio_id;
+            if (faseId === 'null' || faseId === '') {
+              fase_servicio_id = null;
+            } else {
+              fase_servicio_id = parseInt(faseId) || null;
+            }
+
+            fases.push({
+              fase_servicio_id: fase_servicio_id,
+              nombre: $fase.data('nombre'),
+              descripcion: $fase.data('descripcion'),
+              posicion: index + 1
+            });
+          });          // Actualizar el campo oculto
+          if (!$('#fases-hidden').length) {
+            $('<input>').attr({
+              type: 'hidden',
+              id: 'fases-hidden',
+              name: 'fases'
+            }).appendTo('#form-servicio');
+          }
+          $('#fases-hidden').val(JSON.stringify(fases));
+
+          return fases;
         }
 
 
@@ -207,7 +330,49 @@
             });
         }
 
-        // Eventos
+        // Evento submit del formulario
+        $('#form-servicio').on('submit', function (e) {
+          e.preventDefault();
+          const fases = obtenerFases();
+
+          if (fases.length === 0) {
+            alert('Debe seleccionar al menos un tipo de servicio con fases.');
+            return false;
+          }
+
+          this.submit();
+        });
+
+        // Función para agregar una nueva fase
+        function agregarNuevaFase() {
+          const nombre = $('#nueva-fase-nombre').val().trim();
+          const descripcion = $('#nueva-fase-descripcion').val().trim();
+
+          if (!nombre) {
+            alert('El nombre de la fase es obligatorio');
+            return;
+          }
+
+          // Obtener las fases actuales
+          const fasesActuales = obtenerFases();
+
+          // Agregar la nueva fase
+          fasesActuales.push({
+            fase_servicio_id: null,
+            nombre: nombre,
+            descripcion: descripcion || null,
+            posicion: fasesActuales.length + 1
+          });
+
+          renderFases(fasesActuales);
+
+          // Actualizar el campo oculto con las fases actualizadas
+          $('#fases-hidden').val(JSON.stringify(fasesActuales));
+
+          // Limpiar campos
+          $('#nueva-fase-nombre').val('');
+          $('#nueva-fase-descripcion').val('');
+        }        // Eventos
         $(document).on('change', 'input[name="modalidad_id"]', function () {
           const modalidadId = $(this).val();
           cargarTiposPorModalidad(modalidadId, '');
@@ -220,18 +385,50 @@
           cargarFasesPorTipo(tipoId, nombre);
         });
 
-        // ===== Carga inicial: mostrar fases del tipo actual (si existe) =====
-        if (ctx.tipoInicial) {
-          // El select ya viene lleno desde el servidor y con el actual seleccionado.
-          const nombre = $tipo.find('option:selected').text();
-          cargarFasesPorTipo(ctx.tipoInicial, nombre);
-        } else if (ctx.modalidadInicial) {
-          // Si no hay tipo actual, pero sí modalidad, cargamos tipos y autoseleccionamos el primero
-          cargarTiposPorModalidad(ctx.modalidadInicial, '');
-        } else {
-          $tituloPreview.text('Selecciona modalidad y tipo para ver fases.');
-        }
-      });
+        // Evento para agregar nueva fase
+        $('#agregar-fase').on('click', agregarNuevaFase);
+        $('#nueva-fase-nombre, #nueva-fase-descripcion').on('keypress', function (e) {
+          if (e.which === 13) { // Enter key
+            e.preventDefault();
+            agregarNuevaFase();
+          }
+        });
+
+        // Evento para eliminar fase
+        $(document).on('click', '.delete-fase', function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (confirm('¿Estás seguro de que deseas eliminar esta fase?')) {
+            $(this).closest('.sortable-item').remove();
+            obtenerFases(); // Actualizar el campo oculto
+          }
+        });
+
+        // ===== Carga inicial: mostrar fases existentes y luego las del tipo actual =====
+        // Cargar fases existentes del servicio si las hay
+        @if($servicio->fases->count() > 0)
+          const fasesExistentes = @json($servicio->fases);
+          renderFases(fasesExistentes.map(f => ({
+            fase_servicio_id: f.fase_servicio_id,
+            nombre: f.nombre,
+            descripcion: f.descripcion,
+            posicion: f.posicion
+          })));
+          obtenerFases(); // Para inicializar el campo oculto
+        @else
+                                if (ctx.tipoInicial) {
+            // El select ya viene lleno desde el servidor y con el actual seleccionado.
+            const nombre = $tipo.find('option:selected').text();
+            cargarFasesPorTipo(ctx.tipoInicial, nombre);
+          } else if (ctx.modalidadInicial) {
+            // Si no hay tipo actual, pero sí modalidad, cargamos tipos y autoseleccionamos el primero
+            cargarTiposPorModalidad(ctx.modalidadInicial, '');
+          } else {
+            $tituloPreview.text('Selecciona modalidad y tipo para ver fases.');
+          }
+        @endif
+                      });
     </script>
   @endpush
 </x-app-layout>

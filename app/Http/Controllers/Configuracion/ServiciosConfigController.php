@@ -60,12 +60,11 @@ class ServiciosConfigController extends Controller
         ]);
     }
 
-
     public function store(Request $request, Cliente $cliente)
     {
         // Validar los datos
         $data = $request->validate([
-            'nombre_servicio'  => ['required', 'string', 'max:150'],  // Asegúrate de que 'nombre_servicio' esté aquí
+            'nombre_servicio'  => ['required', 'string', 'max:150'],
             'modalidad_id'     => ['required', Rule::exists('modalidads', 'id')],
             'tipo_servicio_id' => [
                 'required',
@@ -74,17 +73,17 @@ class ServiciosConfigController extends Controller
             ],
             'mapa'             => ['sometimes', 'array'],
             'mapa.*'           => ['nullable', 'numeric', 'min:0'],
+            'fases'            => ['required', 'json']
         ]);
 
-        DB::transaction(function () use ($cliente, $data) {
+        DB::transaction(function () use ($request, $cliente, $data) {
             // Crear el servicio
             $servicio = Servicio::create([
                 'cliente_id'       => $cliente->id,
-                'nombre_servicio'  => $data['nombre_servicio'],  // Verifica que 'nombre_servicio' se esté pasando aquí
+                'nombre_servicio'  => $data['nombre_servicio'],
                 'modalidad_id'     => $data['modalidad_id'],
                 'tipo_servicio_id' => $data['tipo_servicio_id'],
             ]);
-
 
             // Crear/actualizar mapa de horas si viene
             if (array_key_exists('mapa', $data)) {
@@ -98,20 +97,20 @@ class ServiciosConfigController extends Controller
                 }
             }
 
-            // Instanciar fases del tipo seleccionado
-            $plantilla = FaseServicio::select('id', 'nombre', 'descripcion')
-                ->where('tipo_servicio_id', $data['tipo_servicio_id'])
-                ->orderBy('id')
-                ->get();
+            // Procesar las fases en el orden recibido
+            $fasesData = json_decode($data['fases'], true);
+            foreach ($fasesData as $fase) {
+                // Asegurarse de que fase_servicio_id sea null o un entero válido
+                $fase_servicio_id = isset($fase['fase_servicio_id']) &&
+                    is_numeric($fase['fase_servicio_id']) ?
+                    (int)$fase['fase_servicio_id'] : null;
 
-            $pos = 1;
-            foreach ($plantilla as $fase) {
                 FaseDeServicioInstancia::create([
                     'servicio_id'      => $servicio->id,
-                    'fase_servicio_id' => $fase->id,
-                    'nombre'           => $fase->nombre,
-                    'descripcion'      => $fase->descripcion,
-                    'posicion'         => $pos++,
+                    'fase_servicio_id' => $fase_servicio_id,
+                    'nombre'           => $fase['nombre'],
+                    'descripcion'      => $fase['descripcion'] ?? null,
+                    'posicion'         => $fase['posicion']
                 ]);
             }
         });
@@ -176,8 +175,8 @@ class ServiciosConfigController extends Controller
         // Mapa de áreas (si lo usas)
         $areasCatalog = Area::select('id', 'nombre')->orderBy('nombre')->get();
 
-        // Cargar relaciones útiles del servicio (mapa)
-        $servicio->load(['mapa.mapaAreas.area:id,nombre']);
+        // Cargar relaciones útiles del servicio (mapa y fases)
+        $servicio->load(['mapa.mapaAreas.area:id,nombre', 'fases' => fn($q) => $q->orderBy('posicion')]);
 
         return view('configuracion.servicios.edit', [
             'cliente'             => $cliente,
@@ -206,6 +205,7 @@ class ServiciosConfigController extends Controller
             ],
             'mapa'              => ['sometimes', 'array'],
             'mapa.*'            => ['nullable', 'numeric', 'min:0'],
+            'fases'             => ['required', 'json'],
         ]);
 
         DB::transaction(function () use ($servicio, $data) {
@@ -226,6 +226,28 @@ class ServiciosConfigController extends Controller
                         ['horas_contratadas' => $horas]
                     );
                 }
+            }
+
+            // Procesar las fases en el orden recibido
+            $fasesData = json_decode($data['fases'], true);
+
+            // Eliminar las fases existentes
+            $servicio->fases()->delete();
+
+            // Insertar las nuevas fases con sus posiciones
+            foreach ($fasesData as $fase) {
+                // Asegurarse de que fase_servicio_id sea null o un entero válido
+                $fase_servicio_id = isset($fase['fase_servicio_id']) &&
+                    is_numeric($fase['fase_servicio_id']) ?
+                    (int)$fase['fase_servicio_id'] : null;
+
+                FaseDeServicioInstancia::create([
+                    'servicio_id'      => $servicio->id,
+                    'fase_servicio_id' => $fase_servicio_id,
+                    'nombre'           => $fase['nombre'],
+                    'descripcion'      => $fase['descripcion'] ?? null,
+                    'posicion'         => $fase['posicion']
+                ]);
             }
         });
 
