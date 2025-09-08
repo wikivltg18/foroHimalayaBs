@@ -1,4 +1,7 @@
 <x-app-layout>
+  <x-slot name="buttonPress">
+    <a href="{{ route('config.servicios.index', $cliente->id) }}" class="btn btn-secondary">Volver</a>
+  </x-slot>
   <x-slot name="titulo">Crear configuración de servicios</x-slot>
   <x-slot name="slot">
     <div id="ctx" data-cliente="{{ $cliente->id }}" data-modalidad-inicial="{{ $selectedModalidadId }}"
@@ -8,26 +11,26 @@
     <div class="container">
       <div class="row">
         {{-- Columna izquierda: Formulario --}}
-        <div class="col-md-7">
+        <div class="col-md-6">
           <form id="form-servicio" action="{{ route('config.servicios.store', $cliente->id) }}" method="POST">
             @csrf
 
             <div class="mb-3">
-              <div class="fw-bold" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Cliente:</div>
+              <div class="fw-bold" style="color: #003B7B;">Cliente:</div>
               <div>{{ $cliente->nombre }}</div>
             </div>
 
             {{-- Nombre del servicio --}}
             <div class="mb-3">
-              <label class="form-label" for="nombre_servicio"
-                style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Nombre del servicio:</label>
+              <label class="form-label fw-bold" for="nombre_servicio" style="color: #003B7B;">Nombre del servicio: <span
+                  class="text-danger">*</span></label>
               <input type="text" id="nombre_servicio" name="nombre_servicio" class="form-control"
                 value="{{ old('nombre_servicio') }}" placeholder="Servicio 2" required>
             </div>
 
             {{-- Mapa del cliente --}}
             <div class="mb-2">
-              <div class="fw-bold" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Mapa del cliente:</div>
+              <div class="fw-bold" style="color: #003B7B;">Mapa del cliente:</div>
             </div>
 
             <div class="row g-3 mb-4">
@@ -42,8 +45,8 @@
 
             {{-- Modalidad --}}
             <div class="mb-3">
-              <label class="form-label" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">
-                Modalidad del servicio:
+              <label class="form-label fw-bold" style="color: #003B7B;">
+                Modalidad del servicio: <span class="text-danger">*</span>
               </label>
               <div id="modalidades-container">
                 @foreach($modalidades as $m)
@@ -58,24 +61,34 @@
 
             {{-- Tipo de servicio --}}
             <div class="mb-4">
-              <label class="form-label" for="tipo_servicio"
-                style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Tipo de servicio:</label>
+              <label class="form-label fw-bold" for="tipo_servicio" style="color: #003B7B;">Tipo de servicio: <span
+                  class="text-danger">*</span></label>
               <select id="tipo_servicio" name="tipo_servicio_id" class="form-select" required>
-                <option value="">Seleccione un tipo</option>
+                <option value="" disabled selected>Seleccione un tipo de servicio</option>
                 @foreach($tipos as $t)
                   <option value="{{ $t->id }}" @selected((string) $t->id === (string) $selectedTipoId)>{{ $t->nombre }}
                   </option>
                 @endforeach
               </select>
+              <small class="text-muted">Los tipos listados corresponden a la modalidad seleccionada.</small>
             </div>
 
             {{-- Fases del servicio --}}
             <div class="mb-3">
-              <div class="fw-bold" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Fases del servicio:
+              <div class="fw-bold" style="color: #003B7B;">Fases del servicio: <span class="text-danger">*</span>
               </div>
 
+
+
+              <div id="fases-preview" class="d-flex flex-column gap-2 mb-2">
+                <small class="text-muted">Las fases listadas corresponden al tipo de servicio seleccionado.</small>
+                <div class="sortable-list">
+                  <!-- Las fases se agregarán aquí -->
+                </div>
+              </div>
               {{-- Formulario para agregar fase --}}
               <div class="mb-3">
+                <small class="text-muted">Fases de servicio adicionales.</small>
                 <div class="input-group">
                   <input type="text" id="nueva-fase-nombre" class="form-control" placeholder="Nombre de la nueva fase">
                   <input type="text" id="nueva-fase-descripcion" class="form-control"
@@ -85,20 +98,13 @@
                   </button>
                 </div>
               </div>
-
-              <div id="fases-preview" class="d-flex flex-column gap-2 mb-2">
-                <div class="sortable-list">
-                  <!-- Las fases se agregarán aquí -->
-                </div>
-              </div>
             </div>
 
             <!-- Template para las fases -->
             <template id="fase-template">
               <div class="badge p-2 rounded sortable-item d-flex align-items-center"
-                style="color:#003B7B; background-color:#DDF7FF; cursor: move; user-select: none; margin-bottom: 5px;"
+                style="color:#003B7B; background-color:#DDF7FF; cursor: grab; user-select: none; margin-bottom: 5px;"
                 data-fase-id="">
-                <i class="fas fa-grip-vertical me-2 handle" style="cursor: grab;"></i>
                 <span class="fase-nombre flex-grow-1"></span>
                 <i class="fas fa-times ms-2 delete-fase" style="cursor: pointer;"></i>
               </div>
@@ -121,8 +127,7 @@
 
             {{-- Botones --}}
             <div class="d-flex gap-2 mt-4">
-              <button type="submit" class="btn btn-primary">Guardar</button>
-              <a href="{{ route('config.servicios.index', $cliente->id) }}" class="btn btn-secondary">Cerrar</a>
+              <button type="submit" class="btn btn-success w-100">Guardar</button>
             </div>
             <!-- Campo oculto para fases -->
             <input type="hidden" name="fases" id="fases-hidden">
@@ -130,7 +135,7 @@
         </div>
 
         {{-- Columna derecha: Imagen --}}
-        <div class="col-md-5 d-flex align-items-center justify-content-center" style="background-color:#003B7B;">
+        <div class="col-md-6 d-flex align-items-center justify-content-center" style="background-color:#003B7B;">
           <img src="{{ asset('img/Logo_Himalaya_blanco-10.png') }}" alt="Logo Himalaya" class="img-fluid"
             style="max-width: 90%; height: auto;">
         </div>
@@ -181,14 +186,16 @@
 
           sortable = new Sortable(container, {
             animation: 150,
-            handle: '.handle',
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
             forceFallback: false,
             fallbackClass: 'sortable-fallback',
+            onStart: function (evt) {
+              document.body.style.cursor = 'grabbing';
+            },
             onEnd: function (evt) {
-              // Actualizar las posiciones después de ordenar
+              document.body.style.cursor = 'auto';
               const fases = obtenerFases();
               console.log('Nuevo orden de fases:', fases);
             }

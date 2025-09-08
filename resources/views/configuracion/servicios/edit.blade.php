@@ -1,6 +1,8 @@
 <x-app-layout>
-  {{-- Asegúrate de tener en tu layout base:
-  <meta name="csrf-token" content="{{ csrf_token() }}"> --}}
+  <x-slot name="buttonPress">
+    <a href="{{ route('config.servicios.index', $cliente->id) }}" class="btn btn-primary">Volver</a>
+  </x-slot>
+
   <x-slot name="titulo">Editar configuración de servicio</x-slot>
 
   <x-slot name="slot">
@@ -10,7 +12,7 @@
 
     <div class="row">
       {{-- Columna izquierda: Formulario --}}
-      <div class="col-md-7">
+      <div class="col-md-6">
         <form id="form-servicio" action="{{ route('config.servicios.update', [$cliente->id, $servicio->id]) }}"
           method="POST" class="mt-3">
           @csrf
@@ -18,9 +20,8 @@
 
           {{-- Nombre --}}
           <div class="mb-3">
-            <label for="nombre_servicio" class="form-label"
-              style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">
-              Nombre del servicio<span class="text-danger">*</span>
+            <label for="nombre_servicio" class="form-label fw-bold" style="color: #003B7B; font-weight: 600;">
+              Nombre del servicio: <span class="text-danger">*</span>
             </label>
             <input type="text" id="nombre_servicio" name="nombre_servicio" class="form-control"
               value="{{ old('nombre_servicio', $servicio->nombre_servicio ?? '') }}" required>
@@ -28,21 +29,19 @@
 
           {{-- Mapa de horas (opcional) --}}
           <div class="mb-4">
-            <h4>Mapa de horas contratadas por área</h4>
+            <p class="fw-bold" style="color: #003B7B;">Mapa de horas contratadas:</p>
             @php
               $mapa = $servicio->mapa;
               $filas = $mapa?->mapaAreas->keyBy('area_id') ?? collect();
             @endphp
 
-            <div class="row g-2">
+            <div class="row g-3">
               @foreach($areasCatalog as $area)
                 @php $valor = optional($filas->get($area->id))->horas_contratadas ?? 0; @endphp
-                <div class="col-6">
-                  <div class="input-group">
-                    <span class="input-group-text w-75">{{ $area->nombre }}</span>
-                    <input type="number" step="0.5" min="0" class="form-control" name="mapa[{{ $area->id }}]"
-                      value="{{ old('mapa.' . $area->id, (float) $valor) }}" placeholder="Horas">
-                  </div>
+                <div class="col-md-6">
+                  <label for="mapa[{{ $area->id }}]" class="form-label">{{ $area->nombre }}:</label>
+                  <input type="number" step="0.5" min="0" class="form-control" name="mapa[{{ $area->id }}]"
+                    value="{{ old('mapa.' . $area->id, (float) $valor) }}" placeholder="Horas">
                 </div>
               @endforeach
             </div>
@@ -50,9 +49,8 @@
 
           {{-- Modalidad (radios) --}}
           <div class="mb-3">
-            <label class="form-label d-block mb-2"
-              style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Modalidad del servicio:<span
-                class="text-danger">*</span></label>
+            <label class="form-label fw-bold d-block mb-2" style="color: #003B7B;">Modalidad del
+              servicio:<span class="text-danger">*</span></label>
             <div id="modalidades-container" class="d-flex gap-3 flex-wrap">
               @foreach($modalidades as $m)
                 <div class="form-check form-check-inline">
@@ -66,9 +64,8 @@
 
           {{-- Tipo (select dependiente) --}}
           <div class="mb-4">
-            <label class="form-label" for="tipo_servicio"
-              style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Tipo de servicio:<span
-                class="text-danger">*</span></label>
+            <label class="form-label fw-bold" for="tipo_servicio" style="color: #003B7B;">Tipo de
+              servicio:<span class="text-danger">*</span></label>
             <select class="form-select" id="tipo_servicio" name="tipo_servicio_id" required>
               <option value="">Seleccione un tipo de servicio</option>
               @foreach($tipos as $t)
@@ -82,15 +79,22 @@
 
           {{-- Fases del servicio --}}
           <div class="mb-4">
-            <h5 class="mb-2" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Fases del tipo de
+            <p class="mb-2 fw-bold" style="color: #003B7B;">Fases del tipo de
               servicio:<span class="text-danger">*</span>
-            </h5>
-            <p id="preview-tipo-titulo" class="mb-1 text-muted">
-              Selecciona un tipo para ver sus fases.
             </p>
+            <small id="preview-tipo-titulo" class="mb-1 text-muted">
+              Las fases listadas corresponden al tipo de servicio seleccionado.
+            </small>
+
+            <div id="preview-fases" class="d-flex flex-column gap-2">
+              <div class="sortable-list">
+                <!-- Las fases se agregarán aquí -->
+              </div>
+            </div>
 
             {{-- Formulario para agregar fase --}}
             <div class="mb-3">
+              <small class="text-muted">Fases de servicio adicionales.</small>
               <div class="input-group">
                 <input type="text" id="nueva-fase-nombre" class="form-control" placeholder="Nombre de la nueva fase">
                 <input type="text" id="nueva-fase-descripcion" class="form-control"
@@ -100,20 +104,13 @@
                 </button>
               </div>
             </div>
-
-            <div id="preview-fases" class="d-flex flex-column gap-2">
-              <div class="sortable-list">
-                <!-- Las fases se agregarán aquí -->
-              </div>
-            </div>
           </div>
 
           <!-- Template para las fases -->
           <template id="fase-template">
             <div class="badge p-2 rounded sortable-item d-flex align-items-center"
-              style="color:#003B7B; background-color:#DDF7FF; cursor: move; user-select: none; margin-bottom: 5px;"
+              style="color:#003B7B; background-color:#DDF7FF; cursor: grab; user-select: none; margin-bottom: 5px;"
               data-fase-id="">
-              <i class="fas fa-grip-vertical me-2 handle" style="cursor: grab;"></i>
               <span class="fase-nombre flex-grow-1"></span>
               <i class="fas fa-times ms-2 delete-fase" style="cursor: pointer;"></i>
             </div>
@@ -136,15 +133,14 @@
 
           {{-- Botones --}}
           <div class="d-flex gap-2 mb-4">
-            <a href="{{ route('config.servicios.index', $cliente->id) }}" class="btn btn-light">Cancelar</a>
-            <button type="submit" class="btn btn-primary">Guardar cambios</button>
+            <button type="submit" class="btn btn-success w-100">Guardar</button>
           </div>
 
         </form>
       </div>
 
       {{-- Columna derecha: Imagen --}}
-      <div class="col-md-5 d-flex align-items-center justify-content-center" style="background-color:#003B7B;">
+      <div class="col-md-6 d-flex align-items-center justify-content-center" style="background-color:#003B7B;">
         <img src="{{ asset('img/Logo_Himalaya_blanco-10.png') }}" alt="Logo Himalaya" class="img-fluid"
           style="max-width: 90%; height: auto;">
       </div>
@@ -183,7 +179,7 @@
         const toList = (res) => Array.isArray(res) ? res : (res?.tipos ?? res?.fases ?? res?.data ?? []);
 
         function setTipos(items, selected) {
-          $tipo.html('<option value="">Seleccione un tipo de servicio</option>');
+          $tipo.html('<option value="" disabled selected>Seleccione un tipo de servicio</option>');
           items.forEach(t => {
             const sel = String(t.id) === String(selected) ? 'selected' : '';
             $tipo.append(`<option value="${t.id}" ${sel}>${t.nombre}</option>`);
@@ -202,13 +198,16 @@
 
           sortable = new Sortable(container, {
             animation: 150,
-            handle: '.handle',
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
             dragClass: 'sortable-drag',
             forceFallback: false,
             fallbackClass: 'sortable-fallback',
+            onStart: function (evt) {
+              document.body.style.cursor = 'grabbing';
+            },
             onEnd: function (evt) {
+              document.body.style.cursor = 'auto';
               obtenerFases();
             }
           });
@@ -436,7 +435,7 @@
           })));
           obtenerFases(); // Para inicializar el campo oculto
         @else
-                                        if (ctx.tipoInicial) {
+                                                                                                                                                                                        if (ctx.tipoInicial) {
             // El select ya viene lleno desde el servidor y con el actual seleccionado.
             const nombre = $tipo.find('option:selected').text();
             cargarFasesPorTipo(ctx.tipoInicial, nombre);
@@ -447,7 +446,7 @@
             $tituloPreview.text('Selecciona modalidad y tipo para ver fases.');
           }
         @endif
-                          });
+                                                                                                  });
     </script>
   @endpush
 </x-app-layout>
