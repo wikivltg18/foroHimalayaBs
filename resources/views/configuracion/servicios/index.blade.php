@@ -27,7 +27,7 @@
                   <h5 class="card-title mb-2 fw-bold px-3">
                     {{ $servicio->nombre_servicio ?? $servicio->nombre_del_servicio }}
                   </h5>
-                  <i class="fa-solid fa-eye-slash px-2" style="color:white; font-size: 20px;"></i>
+                  <i class="fa-solid fa-gear px-2" style="color:white; font-size: 20px;"></i>
                 </div>
               </div>
 
@@ -119,7 +119,7 @@
                   </div>
                 </div>
               </div>
-              <div class="modal-footer">
+              <div class="modal-footer d-flex justify-content-between">
                 <a href="{{ route('config.servicios.edit', [$cliente->id, $servicio->id]) }}"
                   class="btn btn-primary">Editar</a>
                 <form method="POST" action="{{ route('config.servicios.destroy', [$cliente->id, $servicio->id]) }}"
@@ -127,15 +127,14 @@
                   @csrf @method('DELETE')
                   <button class="btn btn-danger">Eliminar</button>
                 </form>
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
               </div>
             </div>
           </div>
         </div>
       @empty
         <div class="col-12">
-          <div class="alert alert-info">Este cliente aún no tiene servicios. <a
-              href="{{ route('config.servicios.create', $cliente->id) }}">Crear servicio</a></div>
+          <div class="alert alert-info">Este cliente aún no tiene configuración de servicios relacionadas. <a
+              href="{{ route('config.servicios.create', $cliente->id) }}">Crear configuración</a></div>
         </div>
       @endforelse
     </div>
@@ -205,7 +204,7 @@
             confirmButtonText: 'Ok'
           });
         @endif
-                                                                                                                                                                                                  });
+                                                                                                                                                                                                                  });
     </script>
   @endsection
 </x-app-layout>

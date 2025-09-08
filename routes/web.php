@@ -11,14 +11,12 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ModalidadController;
 use App\Http\Controllers\HerramientaController;
 use App\Http\Controllers\MapaClienteController;
-use App\Http\Controllers\CatalogoAjaxController;
 use App\Http\Controllers\FaseServicioController;
 use App\Http\Controllers\TipoServicioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Controllers\FasesServicioInstanciaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Configuracion\ServiciosConfigController;
-use App\Http\Controllers\Configuracion\EquipoDedicadoConfigController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -207,6 +205,7 @@ Route::get('503', function () {
     return view('errors.503');
 })->name('503');
 
+
 Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function () {
 
     // =========================
@@ -241,17 +240,16 @@ Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function
     });
 
     // ================================================
-    // FASES POR SERVICIO (INSTANCIAS + DnD + eliminar)
+    // FASES POR SERVICIO (INSTANCIAS + DnD)
     // ================================================
     Route::prefix('servicios/{cliente}/{servicio}/fases')
         ->whereNumber(['cliente', 'servicio'])
         ->group(function () {
-
             // Listado (ordenadas por posicion)
             Route::get('', [FasesServicioInstanciaController::class, 'index'])
                 ->name('config.servicios.fases.index');
 
-            // Crear instancia (desde plantilla o personalizada)
+            // Crear instancia
             Route::post('', [FasesServicioInstanciaController::class, 'store'])
                 ->name('config.servicios.fases.store');
 
@@ -259,20 +257,13 @@ Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function
             Route::put('{fase}', [FasesServicioInstanciaController::class, 'update'])
                 ->whereNumber('fase')->name('config.servicios.fases.update');
 
-            // Eliminar (soft delete) + recompactar posiciones
+            // Eliminar
             Route::delete('{fase}', [FasesServicioInstanciaController::class, 'destroy'])
                 ->whereNumber('fase')->name('config.servicios.fases.destroy');
 
             // Drag & Drop (reordenar)
             Route::post('reordenar', [FasesServicioInstanciaController::class, 'reordenar'])
                 ->name('config.servicios.fases.reordenar');
-
-            // Opcionales: restaurar soft delete / purga definitiva
-            Route::post('{fase}/restaurar', [FasesServicioInstanciaController::class, 'restaurar'])
-                ->whereNumber('fase')->name('config.servicios.fases.restaurar');
-
-            Route::delete('{fase}/purga', [FasesServicioInstanciaController::class, 'purga'])
-                ->whereNumber('fase')->name('config.servicios.fases.purga');
         });
 
     // ============================================
@@ -294,38 +285,9 @@ Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function
             Route::delete('areas/{area}', [MapaClienteController::class, 'destroyArea'])
                 ->whereNumber('area')->name('config.servicios.mapa.areas.destroy');
         });
-
-    // =========================
-    // EQUIPO DEDICADO (CRUD)
-    // =========================
-    Route::prefix('equipodedicado')->group(function () {
-        Route::get('/{cliente}', [EquipoDedicadoConfigController::class, 'index'])
-            ->whereNumber('cliente')->name('config.equipo.index');
-
-        Route::get('/{cliente}/create', [EquipoDedicadoConfigController::class, 'create'])
-            ->whereNumber('cliente')->name('config.equipo.create');
-
-        Route::post('/{cliente}', [EquipoDedicadoConfigController::class, 'store'])
-            ->whereNumber('cliente')->name('config.equipo.store'); // <-- corregido (quitado p de pwhereNumber)
-
-        Route::get('/{cliente}/{equipo}/edit', [EquipoDedicadoConfigController::class, 'edit'])
-            ->whereNumber(['cliente', 'equipo'])->name('config.equipo.edit');
-
-        Route::put('/{cliente}/{equipo}', [EquipoDedicadoConfigController::class, 'update'])
-            ->whereNumber(['cliente', 'equipo'])->name('config.equipo.update');
-
-        Route::delete('/{cliente}/{equipo}', [EquipoDedicadoConfigController::class, 'destroy'])
-            ->whereNumber(['cliente', 'equipo'])->name('config.equipo.destroy');
-    });
 });
 
 
-
-Route::get('/ajax/modalidades/{modalidad}/tipos', [CatalogoAjaxController::class, 'tiposPorModalidad'])
-    ->whereNumber('modalidad')->name('catalogo.tipos.modalidad');
-
-Route::get('/ajax/tipos/{tipo}/fases', [CatalogoAjaxController::class, 'fasesPorTipo'])
-    ->whereNumber('tipo')->name('catalogo.fases.tipo');
 
 
 

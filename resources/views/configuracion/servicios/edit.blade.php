@@ -21,7 +21,7 @@
           {{-- Nombre --}}
           <div class="mb-3">
             <label for="nombre_servicio" class="form-label fw-bold" style="color: #003B7B; font-weight: 600;">
-              Nombre del servicio: <span class="text-danger">*</span>
+              Nombre del servicio <span class="text-danger">*</span>
             </label>
             <input type="text" id="nombre_servicio" name="nombre_servicio" class="form-control"
               value="{{ old('nombre_servicio', $servicio->nombre_servicio ?? '') }}" required>
@@ -29,7 +29,7 @@
 
           {{-- Mapa de horas (opcional) --}}
           <div class="mb-4">
-            <p class="fw-bold" style="color: #003B7B;">Mapa de horas contratadas:</p>
+            <p class="fw-bold" style="color: #003B7B;">Mapa de horas contratadas </p>
             @php
               $mapa = $servicio->mapa;
               $filas = $mapa?->mapaAreas->keyBy('area_id') ?? collect();
@@ -50,7 +50,7 @@
           {{-- Modalidad (radios) --}}
           <div class="mb-3">
             <label class="form-label fw-bold d-block mb-2" style="color: #003B7B;">Modalidad del
-              servicio:<span class="text-danger">*</span></label>
+              servicio <span class="text-danger">*</span></label>
             <div id="modalidades-container" class="d-flex gap-3 flex-wrap">
               @foreach($modalidades as $m)
                 <div class="form-check form-check-inline">
@@ -65,9 +65,9 @@
           {{-- Tipo (select dependiente) --}}
           <div class="mb-4">
             <label class="form-label fw-bold" for="tipo_servicio" style="color: #003B7B;">Tipo de
-              servicio:<span class="text-danger">*</span></label>
+              servicio <span class="text-danger">*</span></label>
             <select class="form-select" id="tipo_servicio" name="tipo_servicio_id" required>
-              <option value="">Seleccione un tipo de servicio</option>
+              <option value="" disabled selected>Seleccione un tipo de servicio</option>
               @foreach($tipos as $t)
                 <option value="{{ $t->id }}" @selected((string) $t->id === (string) $selectedTipoId)>
                   {{ $t->nombre }}
@@ -79,8 +79,8 @@
 
           {{-- Fases del servicio --}}
           <div class="mb-4">
-            <p class="mb-2 fw-bold" style="color: #003B7B;">Fases del tipo de
-              servicio:<span class="text-danger">*</span>
+            <p class="mb-2 fw-bold" style="color: #003B7B;">Fases del tipo de servicio <span
+                class="text-danger">*</span>
             </p>
             <small id="preview-tipo-titulo" class="mb-1 text-muted">
               Las fases listadas corresponden al tipo de servicio seleccionado.
@@ -220,7 +220,7 @@
           if (titulo) $tituloPreview.html(`<strong>${titulo}</strong>`);
 
           if (!items.length) {
-            $container.html('<span class="text-muted">Este tipo no tiene fases de plantilla.</span>');
+            $container.html('<span class="text-danger" style="display:block; text-align:center;">Este tipo no tiene fases de plantilla.</span>');
             return;
           }
 
@@ -435,7 +435,7 @@
           })));
           obtenerFases(); // Para inicializar el campo oculto
         @else
-                                                                                                                                                                                        if (ctx.tipoInicial) {
+                                                                                                                                                                                                                                                                        if (ctx.tipoInicial) {
             // El select ya viene lleno desde el servidor y con el actual seleccionado.
             const nombre = $tipo.find('option:selected').text();
             cargarFasesPorTipo(ctx.tipoInicial, nombre);
@@ -446,7 +446,7 @@
             $tituloPreview.text('Selecciona modalidad y tipo para ver fases.');
           }
         @endif
-                                                                                                  });
+                                                                                                                                          });
     </script>
   @endpush
 </x-app-layout>

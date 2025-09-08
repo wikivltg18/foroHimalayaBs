@@ -16,13 +16,13 @@
             @csrf
 
             <div class="mb-3">
-              <div class="fw-bold" style="color: #003B7B;">Cliente:</div>
+              <div class="fw-bold" style="color: #003B7B;">Cliente </div>
               <div>{{ $cliente->nombre }}</div>
             </div>
 
             {{-- Nombre del servicio --}}
             <div class="mb-3">
-              <label class="form-label fw-bold" for="nombre_servicio" style="color: #003B7B;">Nombre del servicio: <span
+              <label class="form-label fw-bold" for="nombre_servicio" style="color: #003B7B;">Nombre del servicio <span
                   class="text-danger">*</span></label>
               <input type="text" id="nombre_servicio" name="nombre_servicio" class="form-control"
                 value="{{ old('nombre_servicio') }}" placeholder="Servicio 2" required>
@@ -30,13 +30,13 @@
 
             {{-- Mapa del cliente --}}
             <div class="mb-2">
-              <div class="fw-bold" style="color: #003B7B;">Mapa del cliente:</div>
+              <div class="fw-bold" style="color: #003B7B;">Mapa del cliente </div>
             </div>
 
             <div class="row g-3 mb-4">
               @foreach($areasCatalog as $area)
                 <div class="col-md-6">
-                  <label for="mapa[{{ $area->id }}]" class="form-label">{{ $area->nombre }}:</label>
+                  <label for="mapa[{{ $area->id }}]" class="form-label">{{ $area->nombre }}</label>
                   <input type="number" step="0.5" min="0" class="form-control" name="mapa[{{ $area->id }}]"
                     value="{{ old('mapa.' . $area->id) }}" placeholder="Horas">
                 </div>
@@ -46,7 +46,7 @@
             {{-- Modalidad --}}
             <div class="mb-3">
               <label class="form-label fw-bold" style="color: #003B7B;">
-                Modalidad del servicio: <span class="text-danger">*</span>
+                Modalidad del servicio <span class="text-danger">*</span>
               </label>
               <div id="modalidades-container">
                 @foreach($modalidades as $m)
@@ -61,7 +61,7 @@
 
             {{-- Tipo de servicio --}}
             <div class="mb-4">
-              <label class="form-label fw-bold" for="tipo_servicio" style="color: #003B7B;">Tipo de servicio: <span
+              <label class="form-label fw-bold" for="tipo_servicio" style="color: #003B7B;">Tipo de servicio <span
                   class="text-danger">*</span></label>
               <select id="tipo_servicio" name="tipo_servicio_id" class="form-select" required>
                 <option value="" disabled selected>Seleccione un tipo de servicio</option>
@@ -75,7 +75,7 @@
 
             {{-- Fases del servicio --}}
             <div class="mb-3">
-              <div class="fw-bold" style="color: #003B7B;">Fases del servicio: <span class="text-danger">*</span>
+              <div class="fw-bold" style="color: #003B7B;">Fases del servicio <span class="text-danger">*</span>
               </div>
 
 
