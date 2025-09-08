@@ -73,6 +73,19 @@
             <div class="mb-3">
               <div class="fw-bold" style="font-size: 1.2rem; font-weight: 700; color: #003B7B;">Fases del servicio:
               </div>
+
+              {{-- Formulario para agregar fase --}}
+              <div class="mb-3">
+                <div class="input-group">
+                  <input type="text" id="nueva-fase-nombre" class="form-control" placeholder="Nombre de la nueva fase">
+                  <input type="text" id="nueva-fase-descripcion" class="form-control"
+                    placeholder="Descripción (opcional)">
+                  <button type="button" id="agregar-fase" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Agregar
+                  </button>
+                </div>
+              </div>
+
               <div id="fases-preview" class="d-flex flex-column gap-2 mb-2">
                 <div class="sortable-list">
                   <!-- Las fases se agregarán aquí -->
@@ -87,6 +100,7 @@
                 data-fase-id="">
                 <i class="fas fa-grip-vertical me-2 handle" style="cursor: grab;"></i>
                 <span class="fase-nombre flex-grow-1"></span>
+                <i class="fas fa-times ms-2 delete-fase" style="cursor: pointer;"></i>
               </div>
             </template>
 
@@ -126,6 +140,8 @@
 
   {{-- Font Awesome --}}
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  {{-- SweetAlert2 --}}
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -194,7 +210,8 @@
             const clone = document.importNode(template.content, true);
             const faseElement = clone.querySelector('.sortable-item');
 
-            faseElement.dataset.faseId = f.id;
+            // Handle both cases: when loading from server (id) and when adding new phases (fase_servicio_id)
+            faseElement.dataset.faseId = f.id || f.fase_servicio_id || null;
             faseElement.dataset.nombre = f.nombre;
             faseElement.dataset.descripcion = f.descripcion || '';
             faseElement.querySelector('.fase-nombre').textContent = f.nombre;
@@ -251,15 +268,62 @@
             });
         }
 
+        // Función para agregar una nueva fase
+        async function agregarNuevaFase() {
+          const nombre = $('#nueva-fase-nombre').val().trim();
+          const descripcion = $('#nueva-fase-descripcion').val().trim();
+
+          if (!nombre) {
+            await Swal.fire({
+              title: 'Error',
+              text: 'El nombre de la fase es obligatorio',
+              icon: 'error',
+              confirmButtonText: 'Ok'
+            });
+            return;
+          }
+
+          // Obtener las fases actuales
+          const fasesActuales = obtenerFases();
+
+          // Agregar la nueva fase
+          fasesActuales.push({
+            fase_servicio_id: null,
+            nombre: nombre,
+            descripcion: descripcion || null,
+            posicion: fasesActuales.length + 1
+          });
+
+          // Renderizar todas las fases
+          paintFases(fasesActuales);
+
+          // Actualizar el campo oculto
+          $('#fases-hidden').val(JSON.stringify(fasesActuales));
+
+          // Limpiar campos
+          $('#nueva-fase-nombre').val('');
+          $('#nueva-fase-descripcion').val('');
+        }
+
         // Función para recopilar las fases del preview
         function obtenerFases() {
           let fases = [];
 
           // Obtener todas las fases en el orden actual
-          $('#fases-preview .sortable-item').each(function (index) {
+          $('#fases-preview .sortable-list .sortable-item').each(function (index) {
             const $fase = $(this);
+            const faseId = $fase.data('fase-id');
+
+            // Convertir el fase_servicio_id correctamente
+            let fase_servicio_id;
+            if (faseId === 'null' || faseId === '') {
+              fase_servicio_id = null;
+            } else {
+              fase_servicio_id = parseInt(faseId) || null;
+            }
+
             fases.push({
-              fase_servicio_id: $fase.data('fase-id'),
+              fase_servicio_id: fase_servicio_id,
               nombre: $fase.data('nombre'),
               descripcion: $fase.data('descripcion'),
               posicion: index + 1
@@ -273,13 +337,79 @@
         }
 
         // Evento al hacer click en el botón Guardar
-        $('#form-servicio').on('submit', function (e) {
+        $('#form-servicio').on('submit', async function (e) {
           e.preventDefault();
-          obtenerFases();
-          this.submit();
+
+          // Validar que haya al menos una fase
+          const fases = obtenerFases();
+          if (fases.length === 0) {
+            await Swal.fire({
+              title: 'Error',
+              text: 'Debe agregar al menos una fase al servicio',
+              icon: 'error',
+              confirmButtonText: 'Ok'
+            });
+            return;
+          }
+
+          // Mostrar confirmación
+          const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¿Deseas guardar esta configuración de servicio?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, guardar',
+            cancelButtonText: 'Cancelar'
+          });
+
+          if (result.isConfirmed) {
+            this.submit();
+          }
         });
 
-        // Eventos
+        // Eventos para agregar y eliminar fases
+        $('#agregar-fase').on('click', agregarNuevaFase);
+
+        $('#nueva-fase-nombre, #nueva-fase-descripcion').on('keypress', function (e) {
+          if (e.which === 13) { // Enter key
+            e.preventDefault();
+            agregarNuevaFase();
+          }
+        });
+
+        // Evento para eliminar fase
+        $(document).on('click', '.delete-fase', async function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: "¿Deseas eliminar esta fase?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+          });
+
+          if (result.isConfirmed) {
+            $(this).closest('.sortable-item').remove();
+            obtenerFases(); // Actualizar el campo oculto
+
+            await Swal.fire({
+              title: 'Eliminado',
+              text: 'La fase ha sido eliminada.',
+              icon: 'success',
+              timer: 1500,
+              showConfirmButton: false
+            });
+          }
+        });
+
+        // Eventos de modalidad y tipo
         $(document).on('change', 'input[name="modalidad_id"]', function () {
           cargarTipos($(this).val(), '');
         });

@@ -331,12 +331,17 @@
         }
 
         // Evento submit del formulario
-        $('#form-servicio').on('submit', function (e) {
+        $('#form-servicio').on('submit', async function (e) {
           e.preventDefault();
           const fases = obtenerFases();
 
           if (fases.length === 0) {
-            alert('Debe seleccionar al menos un tipo de servicio con fases.');
+            await Swal.fire({
+              title: 'Error',
+              text: 'Debe seleccionar al menos un tipo de servicio con fases.',
+              icon: 'error',
+              confirmButtonText: 'Ok'
+            });
             return false;
           }
 
@@ -344,12 +349,17 @@
         });
 
         // Función para agregar una nueva fase
-        function agregarNuevaFase() {
+        async function agregarNuevaFase() {
           const nombre = $('#nueva-fase-nombre').val().trim();
           const descripcion = $('#nueva-fase-descripcion').val().trim();
 
           if (!nombre) {
-            alert('El nombre de la fase es obligatorio');
+            await Swal.fire({
+              title: 'Error',
+              text: 'El nombre de la fase es obligatorio',
+              icon: 'error',
+              confirmButtonText: 'Ok'
+            });
             return;
           }
 
@@ -395,11 +405,20 @@
         });
 
         // Evento para eliminar fase
-        $(document).on('click', '.delete-fase', function (e) {
+        $(document).on('click', '.delete-fase', async function (e) {
           e.preventDefault();
           e.stopPropagation();
 
-          if (confirm('¿Estás seguro de que deseas eliminar esta fase?')) {
+          const result = await Swal.fire({
+            title: '¿Estás seguro?',
+            text: 'Esta acción eliminará la fase del servicio.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+          });
+
+          if (result.isConfirmed) {
             $(this).closest('.sortable-item').remove();
             obtenerFases(); // Actualizar el campo oculto
           }
@@ -417,7 +436,7 @@
           })));
           obtenerFases(); // Para inicializar el campo oculto
         @else
-                                if (ctx.tipoInicial) {
+                                        if (ctx.tipoInicial) {
             // El select ya viene lleno desde el servidor y con el actual seleccionado.
             const nombre = $tipo.find('option:selected').text();
             cargarFasesPorTipo(ctx.tipoInicial, nombre);
@@ -428,7 +447,7 @@
             $tituloPreview.text('Selecciona modalidad y tipo para ver fases.');
           }
         @endif
-                      });
+                          });
     </script>
   @endpush
 </x-app-layout>

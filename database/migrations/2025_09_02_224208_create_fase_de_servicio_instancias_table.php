@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
 
             $table->unsignedBigInteger('servicio_id');
-            $table->unsignedBigInteger('fase_servicio_id');
+            $table->unsignedBigInteger('fase_servicio_id')->nullable();
 
             $table->string('nombre');
             $table->text('descripcion')->nullable();
@@ -26,11 +26,6 @@ return new class extends Migration
             $table->foreign('servicio_id')
                 ->references('id')
                 ->on('servicios')
-                ->onDelete('cascade');
-
-            $table->foreign('fase_servicio_id')
-                ->references('id')
-                ->on('fases_de_servicio')
                 ->onDelete('cascade');
         });
     }

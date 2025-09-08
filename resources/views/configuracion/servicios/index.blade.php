@@ -1,7 +1,8 @@
 <x-app-layout>
   <x-slot name="buttonPress">
-    <a href="{{ route('config.servicios.create', $cliente->id) }}" class="btn btn-primary me-2">Crear configuración de
-      servicio</a>
+    <a href="{{ route('config.servicios.create', $cliente->id) }}" class="btn btn-primary me-2">Crear configuración</a>
+    <a href="{{ route('clientes.index') }}" class="btn btn-primary me-2">Volver</a>
+
   </x-slot>
 
   <x-slot name="titulo">
@@ -22,14 +23,14 @@
             <!-- Encabezado -->
             <header class="card-header border-0 bg-white">
               <div class="row">
-                <div class="col-12 d-flex flex-column">
+                <div class="col-6 d-flex flex-column">
                   <h6 class="text-muted"><strong style="color:#003B7B;">
                       Cliente
                     </strong>
                   </h6>
                   <p class="mb-2 d-inline fw-light">{{ $cliente->nombre }}</p>
                 </div>
-                <div class="col-12 d-flex flex-column">
+                <div class="col-6 d-flex flex-column">
                   <h6 class="text-muted"><strong style="color:#003B7B;">
                       Servicio</strong>
                   </h6>
@@ -51,7 +52,7 @@
                 @forelse($areas as $fila)
                   <div class="col-4 mb-2">
                     <div class="rounded p-1">
-                      <h6 style="font-size:16px !important; font-weight: 600;">{{ $fila->area->nombre ?? 'Área' }}:</h6>
+                      <h6 style="font-size:14px !important; font-weight: 600;">{{ $fila->area->nombre ?? 'Área' }}:</h6>
                       </b> <span>{{ (float) $fila->horas_contratadas }}</span>
                     </div>
                   </div>
@@ -95,7 +96,7 @@
               <a href="{{ route('config.servicios.edit', [$cliente->id, $servicio->id]) }}"
                 class="btn btn-primary px-5">Editar</a>
               <form method="POST" action="{{ route('config.servicios.destroy', [$cliente->id, $servicio->id]) }}"
-                onsubmit="return confirm('¿Eliminar servicio?');">
+                class="form-eliminar">
                 @csrf @method('DELETE')
                 <button class="btn btn-danger px-5">Eliminar</button>
               </form>
@@ -111,7 +112,60 @@
     </div>
   </x-slot>
 
-  @push('alert')
-    <script></script>
-  @endpush
+  <!-- SweetAlert2 -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  @section('alert')
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        // Manejar formularios de eliminación
+        const forms = document.querySelectorAll('.form-eliminar');
+
+        forms.forEach(form => {
+          form.addEventListener('submit', async function (e) {
+            e.preventDefault();
+
+            const result = await Swal.fire({
+              title: '¿Estás seguro?',
+              text: "Esta acción eliminará el servicio y toda su configuración. Esta acción no se puede deshacer.",
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#d33',
+              cancelButtonColor: '#3085d6',
+              confirmButtonText: 'Sí, eliminar',
+              cancelButtonText: 'Cancelar',
+              reverseButtons: true
+            });
+
+            if (result.isConfirmed) {
+              // Mostrar indicador de carga
+              Swal.fire({
+                title: 'Eliminando...',
+                text: 'Por favor espere',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                  Swal.showLoading();
+                }
+              });
+
+              // Enviar el formulario
+              form.submit();
+            }
+          });
+        });
+
+        // Mostrar alerta de éxito si hay mensaje en la sesión
+        @if(session('success'))
+          Swal.fire({
+            title: '¡Éxito!',
+            text: '{{ session('success') }}',
+            icon: 'success',
+            confirmButtonText: 'Ok'
+          });
+        @endif
+                });
+    </script>
+  @endsection
 </x-app-layout>
