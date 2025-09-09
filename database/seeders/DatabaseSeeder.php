@@ -14,6 +14,7 @@ use Database\Seeders\TipoContratoSeeder;
 use Database\Seeders\TipoServicioSeeder;
 use Database\Seeders\FaseServiciosSeeder;
 use Database\Seeders\ClienteServicioSeeder;
+use Database\Seeders\TableroServicioSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -35,6 +36,8 @@ class DatabaseSeeder extends Seeder
             TipoServicioSeeder::class,
             FaseServiciosSeeder::class,
             ClienteServicioSeeder::class,
+            EstadoTableroServicioSeeder::class,
+            TableroServicioSeeder::class,
         ]);
     }
 }

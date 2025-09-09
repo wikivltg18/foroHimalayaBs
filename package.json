@@ -19,7 +19,9 @@
     "dependencies": {
         "@popperjs/core": "^2.11.8",
         "bootstrap": "^5.3.7",
+        "jquery": "^3.7.1",
         "sass": "^1.89.2",
+        "sortablejs": "^1.15.6",
         "sweetalert2": "^11.22.2"
     }
 }

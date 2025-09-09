@@ -13,6 +13,7 @@ use App\Http\Controllers\HerramientaController;
 use App\Http\Controllers\MapaClienteController;
 use App\Http\Controllers\FaseServicioController;
 use App\Http\Controllers\TipoServicioController;
+use App\Http\Controllers\TableroServicioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Controllers\FasesServicioInstanciaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -179,6 +180,85 @@ Route::middleware(['auth', 'verified'])->group(function () {
 });
 
 
+
+Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function () {
+
+    // SERVICIOS (CRUD por cliente)
+
+    Route::prefix('servicios')->group(function () {
+        // Rutas existentes de servicios
+        Route::get('/{cliente}', [ServiciosConfigController::class, 'index'])
+            ->whereNumber('cliente')->name('config.servicios.index');
+
+        // Rutas de tableros de servicio
+        Route::get('/{cliente}/tableros', [TableroServicioController::class, 'index'])
+            ->name('configuracion.servicios.tableros.index');
+        Route::get('/{cliente}/{servicio}/tableros/create', [TableroServicioController::class, 'create'])
+            ->name('configuracion.servicios.tableros.create');
+        Route::post('/{cliente}/{servicio}/tableros', [TableroServicioController::class, 'store'])
+            ->name('configuracion.servicios.tableros.store');
+        Route::get('/{cliente}/{servicio}/tableros/{tablero}', [TableroServicioController::class, 'show'])
+            ->name('configuracion.servicios.tableros.show');
+        Route::get('/{cliente}/{servicio}/tableros/{tablero}/edit', [TableroServicioController::class, 'edit'])
+            ->name('configuracion.servicios.tableros.edit');
+        Route::put('/{cliente}/{servicio}/tableros/{tablero}', [TableroServicioController::class, 'update'])
+            ->name('configuracion.servicios.tableros.update');
+        Route::delete('/{cliente}/{servicio}/tableros/{tablero}', [TableroServicioController::class, 'destroy'])
+            ->name('configuracion.servicios.tableros.destroy');
+
+        Route::get('/tableros', [TableroServicioController::class, 'listaTableros'])
+            ->name('configuracion.servicios.tableros.lista');
+
+        Route::get('/{cliente}/create', [ServiciosConfigController::class, 'create'])
+            ->whereNumber('cliente')->name('config.servicios.create');
+
+        Route::post('/{cliente}', [ServiciosConfigController::class, 'store'])
+            ->whereNumber('cliente')->name('config.servicios.store');
+
+        Route::get('/{cliente}/{servicio}/edit', [ServiciosConfigController::class, 'edit'])
+            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.edit');
+
+        Route::put('/{cliente}/{servicio}', [ServiciosConfigController::class, 'update'])
+            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.update');
+
+        Route::delete('/{cliente}/{servicio}', [ServiciosConfigController::class, 'destroy'])
+            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.destroy');
+
+        Route::get('/ajax/modalidades/{modalidad}/tipos', [ServiciosConfigController::class, 'ajaxTiposPorModalidad'])
+            ->whereNumber('modalidad')->name('config.servicios.ajax.tipos');
+
+        Route::get('/ajax/tipos/{tipo}/fases', [ServiciosConfigController::class, 'ajaxFasesPorTipo'])
+            ->whereNumber('tipo')->name('config.servicios.ajax.fases');
+    });
+
+    // FASES POR SERVICIO (INSTANCIAS + DnD)
+    Route::prefix('servicios/{cliente}/{servicio}/fases')
+        ->whereNumber(['cliente', 'servicio'])
+        ->group(function () {
+
+            // Listado (ordenadas por posicion)
+            Route::get('', [FasesServicioInstanciaController::class, 'index'])
+                ->name('config.servicios.fases.index');
+
+            // Crear instancia
+            Route::post('', [FasesServicioInstanciaController::class, 'store'])
+                ->name('config.servicios.fases.store');
+
+            // Actualizar nombre/descripcion
+            Route::put('{fase}', [FasesServicioInstanciaController::class, 'update'])
+                ->whereNumber('fase')->name('config.servicios.fases.update');
+
+            // Eliminar
+            Route::delete('{fase}', [FasesServicioInstanciaController::class, 'destroy'])
+                ->whereNumber('fase')->name('config.servicios.fases.destroy');
+
+            // Drag & Drop (reordenar)
+            Route::post('reordenar', [FasesServicioInstanciaController::class, 'reordenar'])
+                ->name('config.servicios.fases.reordenar');
+        });
+});
+
+
 //ERRORS VIEWS
 
 Route::get('400', function () {
@@ -206,86 +286,6 @@ Route::get('503', function () {
 })->name('503');
 
 
-Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function () {
-
-    // =========================
-    // SERVICIOS (CRUD por cliente)
-    // =========================
-
-    Route::prefix('servicios')->group(function () {
-        Route::get('/{cliente}', [ServiciosConfigController::class, 'index'])
-            ->whereNumber('cliente')->name('config.servicios.index');
-
-        Route::get('/{cliente}/create', [ServiciosConfigController::class, 'create'])
-            ->whereNumber('cliente')->name('config.servicios.create');
-
-        Route::post('/{cliente}', [ServiciosConfigController::class, 'store'])
-            ->whereNumber('cliente')->name('config.servicios.store');
-
-        Route::get('/{cliente}/{servicio}/edit', [ServiciosConfigController::class, 'edit'])
-            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.edit');
-
-        Route::put('/{cliente}/{servicio}', [ServiciosConfigController::class, 'update'])
-            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.update');
-
-        Route::delete('/{cliente}/{servicio}', [ServiciosConfigController::class, 'destroy'])
-            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.destroy');
-
-        // ====== AJAX (dentro del mismo controlador) ======
-        Route::get('/ajax/modalidades/{modalidad}/tipos', [ServiciosConfigController::class, 'ajaxTiposPorModalidad'])
-            ->whereNumber('modalidad')->name('config.servicios.ajax.tipos');
-
-        Route::get('/ajax/tipos/{tipo}/fases', [ServiciosConfigController::class, 'ajaxFasesPorTipo'])
-            ->whereNumber('tipo')->name('config.servicios.ajax.fases');
-    });
-
-    // ================================================
-    // FASES POR SERVICIO (INSTANCIAS + DnD)
-    // ================================================
-    Route::prefix('servicios/{cliente}/{servicio}/fases')
-        ->whereNumber(['cliente', 'servicio'])
-        ->group(function () {
-            // Listado (ordenadas por posicion)
-            Route::get('', [FasesServicioInstanciaController::class, 'index'])
-                ->name('config.servicios.fases.index');
-
-            // Crear instancia
-            Route::post('', [FasesServicioInstanciaController::class, 'store'])
-                ->name('config.servicios.fases.store');
-
-            // Actualizar nombre/descripcion
-            Route::put('{fase}', [FasesServicioInstanciaController::class, 'update'])
-                ->whereNumber('fase')->name('config.servicios.fases.update');
-
-            // Eliminar
-            Route::delete('{fase}', [FasesServicioInstanciaController::class, 'destroy'])
-                ->whereNumber('fase')->name('config.servicios.fases.destroy');
-
-            // Drag & Drop (reordenar)
-            Route::post('reordenar', [FasesServicioInstanciaController::class, 'reordenar'])
-                ->name('config.servicios.fases.reordenar');
-        });
-
-    // ============================================
-    // MAPA DEL CLIENTE (Horas por área del servicio)
-    // ============================================
-    Route::prefix('servicios/{cliente}/{servicio}/mapa')
-        ->whereNumber(['cliente', 'servicio'])
-        ->group(function () {
-
-            // Mostrar mapa + filas de áreas
-            Route::get('', [MapaClienteController::class, 'show'])
-                ->name('config.servicios.mapa.show');
-
-            // Upsert en bloque de horas por área
-            Route::post('areas/upsert', [MapaClienteController::class, 'upsertAreas'])
-                ->name('config.servicios.mapa.areas.upsert');
-
-            // Eliminar una fila (área) del mapa
-            Route::delete('areas/{area}', [MapaClienteController::class, 'destroyArea'])
-                ->whereNumber('area')->name('config.servicios.mapa.areas.destroy');
-        });
-});
 
 
 

@@ -18,8 +18,7 @@
       </div>
       @forelse($servicios as $servicio)
         <div class="col-md-4 mb-3">
-          <div class="card shadow border-0 h-100" data-bs-toggle="modal"
-            data-bs-target="#modalServicio{{ $servicio->id }}" style="cursor: pointer;">
+          <div class="card shadow border-0 h-100">
             <div class="card-body p-0">
               <div class="d-flex">
                 <div class="d-flex flex-row justify-content-between align-items-center p-1 w-100 rounded"
@@ -36,8 +35,17 @@
                   <span class="fw-lighter">{{ $servicio->modalidad->nombre ?? '—' }}</span>
                 </p>
                 <p class="card-text text-muted mb-0 fw-bold">Tipo de servicio: <span
-                    class="fw-lighter">{{ $servicio->tipo->nombre ?? '—' }}</span></p>
+                    class="fw-lighter">{{ $servicio->tipo->nombre ?? '—' }}</span>
+                </p>
               </div>
+            </div>
+            <div class="card-footer d-flex justify-content-center">
+              <button type="button" class="btn btn-primary m-2" data-bs-toggle="modal"
+                data-bs-target="#modalServicio{{ $servicio->id }}" style="cursor: pointer;">
+                Ver servicio
+              </button>
+              <a href="{{ route('configuracion.servicios.tableros.create', ['cliente' => $cliente->id, 'servicio' => $servicio->id]) }}"
+                class="btn btn-warning m-2">Crear tablero</a>
             </div>
           </div>
         </div>
@@ -48,7 +56,7 @@
           <div class="modal-dialog ">
             <div class="modal-content">
               <div class="modal-header" style="background-color:#003B7B; color: white;">
-                <h5 class="modal-title" id="modalLabel{{ $servicio->id }}">Detalles del Servicio</h5>
+                <h5 class="modal-title" id="modalLabel{{ $servicio->id }}">Detalles de configuración del Servicio</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                   aria-label="Close"></button>
               </div>
@@ -140,20 +148,6 @@
     </div>
   </x-slot>
 
-  <style>
-    .cursor-pointer {
-      cursor: pointer;
-    }
-
-    .cursor-pointer:hover {
-      transform: translateY(-2px);
-      transition: transform 0.2s ease-in-out;
-    }
-  </style>
-
-  <!-- SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
   @section('alert')
     <script>
       document.addEventListener('DOMContentLoaded', function () {
@@ -204,7 +198,7 @@
             confirmButtonText: 'Ok'
           });
         @endif
-                                                                                                                                                                                                                  });
+            });
     </script>
   @endsection
 </x-app-layout>
