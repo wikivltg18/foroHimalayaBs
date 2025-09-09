@@ -10,11 +10,13 @@ use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ModalidadController;
 use App\Http\Controllers\HerramientaController;
+use App\Http\Controllers\MapaClienteController;
 use App\Http\Controllers\FaseServicioController;
 use App\Http\Controllers\TipoServicioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
-use App\Http\Controllers\FasesDePlaneacionDeServiciosController;
-
+use App\Http\Controllers\FasesServicioInstanciaController;
+use App\Http\Controllers\Auth\AuthenticatedSessionController;
+use App\Http\Controllers\Configuracion\ServiciosConfigController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -56,8 +58,8 @@ Route::middleware(['auth'])
 
 //consultar cargos
 Route::middleware(['auth'])
-->get('/equipo/cargos', [CargoController::class, 'index'])
-->name('equipo.cargos.index');
+    ->get('/equipo/cargos', [CargoController::class, 'index'])
+    ->name('equipo.cargos.index');
 
 //registrar cargo (crear y guardar)
 Route::middleware(['auth'])
@@ -67,45 +69,45 @@ Route::middleware(['auth'])
     });
 
 // Modificar cargo (editar y actualizar)
-Route::middleware(['auth'])->group(function(){
+Route::middleware(['auth'])->group(function () {
     Route::get('/equipo/cargos/{cargo}/edit', [CargoController::class, 'edit'])->name('equipo.cargos.edit');
     Route::put('/equipo/cargos/{cargo}', [CargoController::class, 'update'])->name('equipo.cargos.update');
 });
 
 // Eliminar cargo
 Route::middleware(['auth', PermissionMiddleware::class . ':eliminar cargo'])
-->delete('/equipo/cargos/{cargo}', [CargoController::class, 'destroy'])
-->name('equipo.cargos.destroy');
+    ->delete('/equipo/cargos/{cargo}', [CargoController::class, 'destroy'])
+    ->name('equipo.cargos.destroy');
 
 //__/ROLES/__//
 
 //registrar role (crear y guardar)
-Route::middleware(['auth'])->group(function(){
+Route::middleware(['auth'])->group(function () {
     Route::get('/equipo/roles/create', [RoleController::class, 'create'])->name('equipo.roles.create');
     Route::post('/equipo/roles', [RoleController::class, 'store'])->name('equipo.roles.store');
 });
 
 // Modificar role (editar y actualizar)
-Route::middleware(['auth'])->group(function(){
+Route::middleware(['auth'])->group(function () {
     Route::get('/equipo/roles/{role}/edit', [RoleController::class, 'edit'])->name('equipo.roles.edit');
     Route::put('/equipo/roles/{role}', [RoleController::class, 'update'])->name('equipo.roles.update');
 });
 
 //Consultar role
 Route::middleware(['auth'])
-->get('/equipo/roles', [RoleController::class, 'index'])->name('equipo.roles.index');
+    ->get('/equipo/roles', [RoleController::class, 'index'])->name('equipo.roles.index');
 
 
 // Eliminar role
 Route::middleware(['auth'])
-->delete('/equipo/cargos/{role}', [RoleController::class, 'destroy'])
-->name('equipo.roles.destroy');
+    ->delete('/equipo/cargos/{role}', [RoleController::class, 'destroy'])
+    ->name('equipo.roles.destroy');
 
 
 //__/USUARIOS/__//
 
 //registrar usuario (crear y guardar)
-Route::middleware(['auth', PermissionMiddleware::class . ':registrar usuario'])->group(function(){
+Route::middleware(['auth', PermissionMiddleware::class . ':registrar usuario'])->group(function () {
     Route::get('/equipo/usuarios/create', [GeneralController::class, 'create'])->name('equipo.usuarios.create');
     Route::post('/equipo/usuarios', [GeneralController::class, 'store'])->name('equipo.usuarios.store');
 });
@@ -139,13 +141,13 @@ Route::middleware('auth')->group(function () {
 //__/CLIENTE/__//
 
 //registrar cliente (crear y guardar)
-Route::middleware(['auth'])->group(function(){
+Route::middleware(['auth'])->group(function () {
     Route::get('/clientes/create', [ClienteController::class, 'create'])->name('clientes.create');
     Route::post('/clientes', [ClienteController::class, 'store'])->name('clientes.store');
 });
 
 //Modificar cliente (editar y actualizar)
-Route::middleware(['auth'])->group(function (){
+Route::middleware(['auth'])->group(function () {
     Route::get('/clientes/{cliente}/edit', [ClienteController::class, 'edit'])->name('clientes.edit');
     Route::put('/clientes/{cliente}', [ClienteController::class, 'update'])->name('clientes.update');
 });
@@ -204,6 +206,89 @@ Route::get('503', function () {
 })->name('503');
 
 
+Route::prefix('configuracion')->middleware(['auth', 'verified'])->group(function () {
+
+    // =========================
+    // SERVICIOS (CRUD por cliente)
+    // =========================
+
+    Route::prefix('servicios')->group(function () {
+        Route::get('/{cliente}', [ServiciosConfigController::class, 'index'])
+            ->whereNumber('cliente')->name('config.servicios.index');
+
+        Route::get('/{cliente}/create', [ServiciosConfigController::class, 'create'])
+            ->whereNumber('cliente')->name('config.servicios.create');
+
+        Route::post('/{cliente}', [ServiciosConfigController::class, 'store'])
+            ->whereNumber('cliente')->name('config.servicios.store');
+
+        Route::get('/{cliente}/{servicio}/edit', [ServiciosConfigController::class, 'edit'])
+            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.edit');
+
+        Route::put('/{cliente}/{servicio}', [ServiciosConfigController::class, 'update'])
+            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.update');
+
+        Route::delete('/{cliente}/{servicio}', [ServiciosConfigController::class, 'destroy'])
+            ->whereNumber(['cliente', 'servicio'])->name('config.servicios.destroy');
+
+        // ====== AJAX (dentro del mismo controlador) ======
+        Route::get('/ajax/modalidades/{modalidad}/tipos', [ServiciosConfigController::class, 'ajaxTiposPorModalidad'])
+            ->whereNumber('modalidad')->name('config.servicios.ajax.tipos');
+
+        Route::get('/ajax/tipos/{tipo}/fases', [ServiciosConfigController::class, 'ajaxFasesPorTipo'])
+            ->whereNumber('tipo')->name('config.servicios.ajax.fases');
+    });
+
+    // ================================================
+    // FASES POR SERVICIO (INSTANCIAS + DnD)
+    // ================================================
+    Route::prefix('servicios/{cliente}/{servicio}/fases')
+        ->whereNumber(['cliente', 'servicio'])
+        ->group(function () {
+            // Listado (ordenadas por posicion)
+            Route::get('', [FasesServicioInstanciaController::class, 'index'])
+                ->name('config.servicios.fases.index');
+
+            // Crear instancia
+            Route::post('', [FasesServicioInstanciaController::class, 'store'])
+                ->name('config.servicios.fases.store');
+
+            // Actualizar nombre/descripcion
+            Route::put('{fase}', [FasesServicioInstanciaController::class, 'update'])
+                ->whereNumber('fase')->name('config.servicios.fases.update');
+
+            // Eliminar
+            Route::delete('{fase}', [FasesServicioInstanciaController::class, 'destroy'])
+                ->whereNumber('fase')->name('config.servicios.fases.destroy');
+
+            // Drag & Drop (reordenar)
+            Route::post('reordenar', [FasesServicioInstanciaController::class, 'reordenar'])
+                ->name('config.servicios.fases.reordenar');
+        });
+
+    // ============================================
+    // MAPA DEL CLIENTE (Horas por área del servicio)
+    // ============================================
+    Route::prefix('servicios/{cliente}/{servicio}/mapa')
+        ->whereNumber(['cliente', 'servicio'])
+        ->group(function () {
+
+            // Mostrar mapa + filas de áreas
+            Route::get('', [MapaClienteController::class, 'show'])
+                ->name('config.servicios.mapa.show');
+
+            // Upsert en bloque de horas por área
+            Route::post('areas/upsert', [MapaClienteController::class, 'upsertAreas'])
+                ->name('config.servicios.mapa.areas.upsert');
+
+            // Eliminar una fila (área) del mapa
+            Route::delete('areas/{area}', [MapaClienteController::class, 'destroyArea'])
+                ->whereNumber('area')->name('config.servicios.mapa.areas.destroy');
+        });
+});
 
 
-require __DIR__.'/auth.php';
+
+
+
+require __DIR__ . '/auth.php';

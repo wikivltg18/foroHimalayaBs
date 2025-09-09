@@ -13,6 +13,7 @@ use Database\Seeders\RedSocialSeeder;
 use Database\Seeders\TipoContratoSeeder;
 use Database\Seeders\TipoServicioSeeder;
 use Database\Seeders\FaseServiciosSeeder;
+use Database\Seeders\ClienteServicioSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -33,6 +34,7 @@ class DatabaseSeeder extends Seeder
             ModalidadSeeder::class,
             TipoServicioSeeder::class,
             FaseServiciosSeeder::class,
+            ClienteServicioSeeder::class,
         ]);
     }
 }
