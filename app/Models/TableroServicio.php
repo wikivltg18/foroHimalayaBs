@@ -45,7 +45,7 @@ class TableroServicio extends Model
 
     public function columnas()
     {
-        return $this->hasMany(ColumnaTableroServicio::class, 'tablero_servicio_id')->orderBy('orden');
+        return $this->hasMany(ColumnaTableroServicio::class, 'tablero_servicio_id')->orderBy('posicion');
     }
 
     public function cliente()

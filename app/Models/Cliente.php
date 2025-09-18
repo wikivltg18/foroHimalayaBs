@@ -58,18 +58,17 @@ class Cliente extends Model
         // con las columnas 'cliente_id' y 'tipo_contrato_id'
         // Usando el modelo ClienteTipoContrato para la tabla pivot
         return $this->belongsToMany(TipoContrato::class, 'cliente_tipo_contrato', 'cliente_id', 'tipo_contrato_id')
-                    ->using(ClienteTipoContrato::class); // Usando el modelo pivot
+            ->using(ClienteTipoContrato::class); // Usando el modelo pivot
     }
 
     /**
      * Relación con el modelo RedSocial.
      */
-        public function redSocial(): HasMany
+    public function redSocial(): HasMany
     {
         // Relación uno a muchos con el modelo RedSocial
         // Asumiendo que el campo 'id_cliente' en la tabla 'redes_sociales'
         // es la clave foránea que referencia a la tabla 'clientes'
         return $this->hasMany(RedSocial::class, 'id_cliente');
     }
-
 }

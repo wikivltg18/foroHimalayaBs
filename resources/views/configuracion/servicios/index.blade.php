@@ -1,6 +1,8 @@
 <x-app-layout>
   <x-slot name="buttonPress">
     <a href="{{ route('config.servicios.create', $cliente->id) }}" class="btn btn-primary me-2">Crear configuración</a>
+    <a href="{{ route('configuracion.servicios.tableros.index', $cliente->id) }}" class="btn btn-primary me-2">Ver
+      Tableros</a>
     <a href="{{ route('clientes.index') }}" class="btn btn-primary me-2">Volver</a>
   </x-slot>
 
@@ -40,12 +42,12 @@
               </div>
             </div>
             <div class="card-footer d-flex justify-content-center">
-              <button type="button" class="btn btn-primary m-2" data-bs-toggle="modal"
+              <button type="button" class="btn btn-dark m-2" data-bs-toggle="modal"
                 data-bs-target="#modalServicio{{ $servicio->id }}" style="cursor: pointer;">
                 Ver servicio
               </button>
               <a href="{{ route('configuracion.servicios.tableros.create', ['cliente' => $cliente->id, 'servicio' => $servicio->id]) }}"
-                class="btn btn-warning m-2">Crear tablero</a>
+                class="btn m-2" style="background-color: #003B7B; color: white;">Crear tablero</a>
             </div>
           </div>
         </div>
@@ -198,7 +200,7 @@
             confirmButtonText: 'Ok'
           });
         @endif
-            });
+                          });
     </script>
   @endsection
 </x-app-layout>

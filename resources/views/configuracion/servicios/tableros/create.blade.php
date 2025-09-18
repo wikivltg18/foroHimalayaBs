@@ -33,12 +33,14 @@
                 <!-- Datos del tablero -->
                 <div class="row mb-3">
                     <div class="col-md-6">
-                        <label for="nombre_del_tablero" class="form-label">Nombre del Tablero *</label>
+                        <label for="nombre_del_tablero" class="form-label">Nombre del Tablero <span
+                                class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="nombre_del_tablero" name="nombre_del_tablero"
                             value="{{ old('nombre_del_tablero') }}" required>
                     </div>
                     <div class="col-md-6">
-                        <label for="estado_tablero_id" class="form-label">Estado del Tablero *</label>
+                        <label for="estado_tablero_id" class="form-label">Estado del Tablero <span
+                                class="text-danger">*</span></label>
                         <select class="form-select" id="estado_tablero_id" name="estado_tablero_id" required>
                             <option value="">Seleccione un estado</option>
                             @foreach($estados as $estado)
@@ -54,6 +56,7 @@
                 <div class="mb-3">
                     <label class="form-label">Fases del servicio que serán columnas del tablero:</label>
                     <div class="row g-3">
+
                         @forelse($fasesInstancias as $index => $fase)
                             <div class="col-md-4">
                                 <div class="card h-100">
@@ -94,8 +97,7 @@
                     value="{{ $servicio->nombre_servicio ?? $servicio->nombre_del_servicio }}">
                 <input type="hidden" name="nombre_cliente" value="{{ $cliente->nombre }}">
                 <input type="hidden" name="nombre_modalidad" value="{{ $servicio->modalidad->nombre ?? '' }}">
-                <input type="hidden" name="nombre_tipo_de_servicio"
-                    value="{{ $servicio->tipo_servicio->nombre ?? '' }}">
+                <input type="hidden" name="nombre_tipo_de_servicio" value="{{ $servicio->tipo->nombre ?? '' }}">
             </div>
 
             @php $sinFases = $fasesInstancias->isEmpty(); @endphp

@@ -38,6 +38,7 @@ class DatabaseSeeder extends Seeder
             ClienteServicioSeeder::class,
             EstadoTableroServicioSeeder::class,
             TableroServicioSeeder::class,
+            EstadoTareaSeeder::class,
         ]);
     }
 }

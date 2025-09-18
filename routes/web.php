@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AreaController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\CargoController;
+use App\Http\Controllers\QuillController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\PermisoController;
@@ -13,6 +14,7 @@ use App\Http\Controllers\HerramientaController;
 use App\Http\Controllers\MapaClienteController;
 use App\Http\Controllers\FaseServicioController;
 use App\Http\Controllers\TipoServicioController;
+use App\Http\Controllers\TareaServicioController;
 use App\Http\Controllers\TableroServicioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Controllers\FasesServicioInstanciaController;
@@ -22,7 +24,6 @@ use App\Http\Controllers\Configuracion\ServiciosConfigController;
 Route::get('/', function () {
     return view('auth.login');
 });
-
 
 Route::get('/dashboard', function () {
     return view('dashboard');
@@ -285,10 +286,38 @@ Route::get('503', function () {
     return view('errors.503');
 })->name('503');
 
+Route::middleware(['auth'])->group(function () {
+    // Index opcional
+    Route::get('/tareas', [TareaServicioController::class, 'index'])->name('tareas.index');
 
+    // Crear en columna
+    Route::get(
+        '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/create',
+        [TareaServicioController::class, 'create']
+    )->name('tareas.createInColumn');
 
+    Route::post(
+        '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas',
+        [TareaServicioController::class, 'store']
+    )->name('tareas.storeInColumn');
 
+    // Detalle en vista Blade (NO modal)
+    Route::get(
+        '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}',
+        [TareaServicioController::class, 'show']
+    )->name('tareas.show');
 
+    // (Si aún usas el modal por AJAX para otras partes)
+    Route::get(
+        '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}/modal',
+        [TareaServicioController::class, 'showModalStrict']
+    )->name('tareas.modal');
+});
 
-
+Route::middleware('auth')->group(function () {
+    Route::get('/ajax/areas/{area}/usuarios', [TareaServicioController::class, 'usuariosPorArea'])
+        ->name('ajax.areas.usuarios');
+    Route::get('/ajax/servicios/{servicio}/areas/{area}/horas', [TareaServicioController::class, 'horasContratadasArea'])
+        ->name('ajax.servicios.areas.horas');
+});
 require __DIR__ . '/auth.php';

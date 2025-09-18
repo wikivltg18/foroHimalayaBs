@@ -4,7 +4,7 @@
     </x-slot>
 
     <x-slot name="titulo">
-        Todos los tableros
+        Lista de tableros
     </x-slot>
 
     <x-slot name="slot">
@@ -50,7 +50,7 @@
                         <thead class="text-center">
                             <tr>
                                 <th>Cliente</th>
-                                <th>Nombre del servicio</th>
+                                <th>Nombre del Tablero</th>
                                 <th>Modalidad del Servicio</th>
                                 <th>Tipo de servicio</th>
                                 <th>Estado del tablero</th>
@@ -128,9 +128,8 @@
                     </table>
                 </div>
 
-                {{-- Paginación --}}
-                <div class="p-3">
-                    {{ $tableros->links() }}
+                <div class="d-flex justify-content-end mt-3">
+                    {{ $tableros->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>

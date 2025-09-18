@@ -38,7 +38,7 @@ class TableroServicioController extends Controller
         // Cargamos columnas ordenadas y estado
         $tablero->load([
             'estado',
-            'columnas' => fn($q) => $q->orderBy('orden'),
+            'columnas' => fn($q) => $q->orderBy('posicion'),
             'servicio.tipo',
             'servicio.modalidad',
         ]);
@@ -70,6 +70,7 @@ class TableroServicioController extends Controller
      */
     public function store(Request $request, Cliente $cliente, Servicio $servicio)
     {
+
 
         // Validamos SOLO lo que viene del form; cliente/servicio se toman de la ruta
         $data = $request->validate([
@@ -106,9 +107,10 @@ class TableroServicioController extends Controller
 
                 foreach ($data['columnas'] as $col) {
                     ColumnaTableroServicio::create([
-                        'tablero_servicio_id'   => $tablero->id,
-                        'nombre_de_la_columna'  => $col['nombre'],
-                        'orden'                 => $col['orden'],
+                        'tablero_servicio_id'  => $tablero->id,
+                        'nombre_de_la_columna' => $col['nombre'],
+                        'descripcion'          => $col['descripcion'] ?? null,
+                        'posicion'             => $col['orden'],
                     ]);
                 }
             });

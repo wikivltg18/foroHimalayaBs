@@ -1,0 +1,98 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+
+class TareaServicio extends Model
+{
+    use SoftDeletes;
+
+    protected $table = "tarea_servicios";
+
+    public $incrementing = false;
+    protected $keyType = 'string';
+
+    protected $fillable = [
+        'id',
+        'columna_id',
+        'estado_id',
+        'area_id',
+        'usuario_id',
+        'titulo',
+        'descripcion',
+        'tiempo_estimado_h',
+        'fecha_de_entrega',
+        'posicion',
+        'finalizada_at',
+        'finalizada_por',
+        'archivada',
+    ];
+
+    protected $casts = [
+        'archivada'         => 'boolean',
+        'finalizada_at'     => 'datetime',
+        'fecha_de_entrega' => 'datetime',
+        'tiempo_estimado_h' => 'decimal:2',
+    ];
+
+    // Relaciones
+    public function columna()
+    {
+        return $this->belongsTo(ColumnaTableroServicio::class, 'columna_id');
+    }
+    public function estado()
+    {
+        return $this->belongsTo(EstadoTarea::class, 'estado_id');
+    }
+    public function area()
+    {
+        return $this->belongsTo(Area::class, 'area_id');
+    }
+    public function usuario()
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
+    public function finalizador()
+    {
+        return $this->belongsTo(User::class, 'finalizada_por');
+    }
+
+    public function usuarios()
+    {
+        return $this->belongsToMany(User::class, 'tarea_usuarios', 'tarea_id', 'usuario_id')
+            ->withPivot('rol')->withTimestamps();
+    }
+    public function recursos()
+    {
+        return $this->hasMany(TareaRecurso::class, 'tarea_id')->orderBy('tipo')->orderBy('orden');
+    }
+    public function comentarios()
+    {
+        return $this->hasMany(TareaComentario::class, 'tarea_id')->latest('created_at');
+    }
+    public function historiales()
+    {
+        return $this->hasMany(TareaEstadoHistorial::class, 'tarea_id')->oldest('created_at');
+    }
+    public function timeLogs()
+    {
+        return $this->hasMany(TareaTimeLog::class, 'tarea_id')->latest('started_at');
+    }
+
+    // Scopes
+    public function scopeActivas($q)
+    {
+        return $q->whereNull('finalizada_at')->where('archivada', false);
+    }
+    public function scopeFinalizadas($q)
+    {
+        return $q->whereNotNull('finalizada_at');
+    }
+    public function scopeWip($q)
+    {
+        // ⬅️ corregido: usa 'estado_id'
+        return $q->whereIn('estado_id', EstadoTarea::wipIds());
+    }
+}

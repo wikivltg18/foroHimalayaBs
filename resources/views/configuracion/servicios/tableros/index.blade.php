@@ -38,7 +38,7 @@
                                 <p class="fw-bold m-0">Tipo del servicio: {{ $tipoServicio }}</p>
                                 <p class="fw-ligth m-0 text-muted">
                                     Fecha de creación: {{ $fechaCreacion }}
-                                    · Estado: <span class="badge bg-secondary">{{ $t->estado->nombre ?? '—' }}</span>
+                                    · Estado: <span class="badge bg-success">{{ $t->estado->nombre ?? '—' }}</span>
                                 </p>
                                 <p class="m-0 text-muted">Tablero: {{ $t->nombre_del_tablero }}</p>
                             </div>
@@ -59,15 +59,10 @@
                         @forelse($t->columnas as $col)
                             <div class="card flex-shrink-0" style="min-width: 240px;">
                                 <div class="card-body rounded" style="background-color: #003B7B;">
+                                    <p class="text-white-50 text-center small mb-0">Fase: {{ $col->posicion }}</p>
                                     <h5 class="card-title text-white fw-bold text-center">
                                         {{ $col->nombre_de_la_columna }}
                                     </h5>
-                                    @if($col->descripcion)
-                                        <p class="card-text text-white text-center small mb-0">
-                                            {{ $col->descripcion }}
-                                        </p>
-                                    @endif
-                                    <p class="text-white-50 text-center small mb-0">Orden: {{ $col->orden }}</p>
                                 </div>
                             </div>
                         @empty

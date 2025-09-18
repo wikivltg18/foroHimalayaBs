@@ -60,6 +60,10 @@ ul {
     padding        : 0;
 }
 
+.quill-content ul li {
+    list-style-type: disc !important;
+}
+
 .dropdown-toggle::after {
     display: none !important;
 }

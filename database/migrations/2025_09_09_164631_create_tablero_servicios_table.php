@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('tableros_servicio', function (Blueprint $table) {
@@ -16,10 +13,27 @@ return new class extends Migration
 
             $table->string('nombre_del_tablero', 150);
 
-            $table->foreignUuid('servicio_id');
-            $table->foreignUuid('cliente_id');
-            $table->foreignId('estado_tablero_id')->constrained('estado_tablero_servicios');
+            // 🚩 Si tus tablas servicios/clientes usan BIGINT (lo usual):
+            $table->foreignId('servicio_id')
+                ->constrained('servicios')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
 
+            $table->foreignId('cliente_id')
+                ->constrained('clientes')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
+
+            // Si servicios/clientes usan UUID, cambia a:
+            // $table->foreignUuid('servicio_id')->constrained('servicios')->cascadeOnUpdate()->restrictOnDelete();
+            // $table->foreignUuid('cliente_id')->constrained('clientes')->cascadeOnUpdate()->restrictOnDelete();
+
+            $table->foreignId('estado_tablero_id')
+                ->constrained('estado_tablero_servicios')
+                ->cascadeOnUpdate()
+                ->restrictOnDelete();
+
+            // Campos denormalizados (opcionales)
             $table->string('nombre_del_servicio', 80)->nullable();
             $table->string('nombre_cliente', 150)->nullable();
             $table->string('nombre_modalidad', 50)->nullable();
@@ -30,9 +44,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('tableros_servicio');
