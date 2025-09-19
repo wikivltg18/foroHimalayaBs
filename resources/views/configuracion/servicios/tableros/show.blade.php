@@ -5,13 +5,13 @@
             class="btn btn-secondary me-2">
             Volver a tableros
         </a>
-        <a href="{{ route('configuracion.servicios.tableros.edit', [
+        {{-- <a href="{{ route('configuracion.servicios.tableros.edit', [
     'cliente' => $cliente->id,
     'servicio' => $servicio->id,
     'tablero' => $tablero->id
 ]) }}" class="btn btn-primary">
             Editar tablero
-        </a>
+        </a> --}}
     </x-slot>
 
     <x-slot name="titulo">
@@ -43,13 +43,13 @@
                         </p>
                     </div>
                     <div class="col-md-4 d-flex align-items-center justify-content-md-end mt-3 mt-md-0">
-                        <a href="{{ route('configuracion.servicios.tableros.edit', [
+                        {{--<a href="{{ route('configuracion.servicios.tableros.edit', [
     'cliente' => $cliente->id,
     'servicio' => $servicio->id,
     'tablero' => $tablero->id
 ]) }}" class="btn btn-outline-primary">
                             Editar
-                        </a>
+                        </a>--}}
                     </div>
                 </div>
             </div>

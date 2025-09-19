@@ -4,9 +4,11 @@ namespace App\Models;
 
 use App\Models\TareaServicio;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class TareaRecurso extends Model
 {
+    use SoftDeletes;
     protected $table = "tarea_recursos";
     public $incrementing = false;
     protected $keyType = 'string';

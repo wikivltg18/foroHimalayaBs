@@ -8,6 +8,7 @@ use App\Models\Cliente;
 use App\Models\Servicio;
 use App\Models\EstadoTarea;
 use Illuminate\Support\Str;
+use App\Models\TareaRecurso;
 use Illuminate\Http\Request;
 use App\Models\TareaServicio;
 use App\Models\TableroServicio;
@@ -17,6 +18,7 @@ use Mews\Purifier\Facades\Purifier;
 use App\Models\TareaEstadoHistorial;
 use Illuminate\Support\Facades\Auth;
 use App\Models\ColumnaTableroServicio;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreTareaRequest;
 
 class TareaServicioController extends Controller
@@ -37,7 +39,6 @@ class TareaServicioController extends Controller
         $areas   = $servicio->areasContratadas()->orderBy('areas.nombre')->get();
         $estados = EstadoTarea::orderBy('nombre')->get();
 
-
         return view('configuracion.servicios.tareas.create', compact(
             'areas',
             'estados',
@@ -50,12 +51,10 @@ class TareaServicioController extends Controller
 
     public function store(Request $request, Cliente $cliente, Servicio $servicio, TableroServicio $tablero, ColumnaTableroServicio $columna)
     {
-
         abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
         abort_unless($tablero->servicio_id === $servicio->id, 404);
         abort_unless($servicio->cliente_id === $cliente->id, 404);
 
-        // IDs válidos de áreas
         $areaIdsValidas = $servicio->areaIdsContratadas();
 
         $validated = $request->validate([
@@ -68,17 +67,33 @@ class TareaServicioController extends Controller
             'fecha_de_entrega'  => ['nullable', 'date', 'after_or_equal:today'],
         ]);
 
-        /* */
-        // Sanitizar la descripción
+        // ========== QUILL: Sanitización mejorada ==========
+        // Permite clases/estilos de Quill, iframes seguros y data-uri para imágenes pegadas
         $validated['descripcion'] = Purifier::clean($validated['descripcion'], [
-            'HTML.Allowed' => 'p,b,strong,i,em,u,strike,ul,ol,li,a[href],br,span[style],div[style],h1,h2,h3,img[src|alt|width|height],video[src|controls|width|height]',
-            'CSS.AllowedProperties' => 'color,background-color,text-align,font-weight,font-style,text-decoration',
+            'HTML.Trusted'             => true,
+            'HTML.SafeIframe'          => true,
+            'URI.SafeIframeRegexp'     => '%^(https?:)?//(www\.youtube\.com/embed/|player\.vimeo\.com/video/)%',
+            'HTML.Allowed'             => implode(',', [
+                'p','b','strong','i','em','u','s','strike','blockquote','pre','code',
+                'ul','ol','li',
+                'a[href|target|rel]',
+                'br',
+                'span[style|class]',
+                'div[style|class]',
+                'h1','h2','h3','h4','h5','h6',
+                'img[src|alt|width|height]',
+                'iframe[src|width|height|frameborder|allowfullscreen]',
+            ]),
+            // comas (,) no punto y coma (;)
+            'CSS.AllowedProperties'    => 'color,background-color,text-align,font-weight,font-style,text-decoration,margin-left,margin-right',
+            'Attr.AllowedClasses'      => 'ql-align-center ql-align-right ql-align-justify ql-indent-1 ql-indent-2 ql-indent-3 ql-size-small ql-size-large ql-size-huge',
+            'Attr.AllowedFrameTargets' => ['_blank','_self'],
+            'URI.AllowedSchemes'       => ['http','https','data'],
             'AutoFormat.AutoParagraph' => true,
-            'AutoFormat.RemoveEmpty' => true,
+            'AutoFormat.RemoveEmpty'   => true,
         ]);
+        // ========== /QUILL ==========
 
-
-        // siguiente posición en la columna
         $nextPos = TareaServicio::where('columna_id', $columna->id)->max('posicion');
         $nextPos = is_null($nextPos) ? 1 : $nextPos + 1;
 
@@ -88,21 +103,19 @@ class TareaServicioController extends Controller
                 'columna_id'        => $columna->id,
                 'estado_id'         => $validated['estado_id'],
                 'area_id'           => $validated['area_id'],
-                'usuario_id'        => $validated['usuario_id'], // responsable principal
+                'usuario_id'        => $validated['usuario_id'],
                 'titulo'            => $validated['titulo'],
-                'descripcion'       => $validated['descripcion'],
+                'descripcion'       => $validated['descripcion'], // con URLs de draft o data:
                 'tiempo_estimado_h' => $validated['tiempo_estimado_h'],
                 'fecha_de_entrega'  => $validated['fecha_de_entrega'] ?? null,
                 'posicion'          => $nextPos,
                 'archivada'         => false,
             ]);
 
-            $userId = Auth::id() ?? $validated['usuario_id'];
-            // historial de estado inicial
             TareaEstadoHistorial::create([
                 'id'                 => (string) Str::uuid(),
                 'tarea_id'           => $tarea->id,
-                'cambiado_por'       => $userId,
+                'cambiado_por'       => Auth::id() ?? $validated['usuario_id'],
                 'estado_id_anterior' => null,
                 'estado_id_nuevo'    => $validated['estado_id'],
                 'observacion'        => 'Creación de tarea',
@@ -111,16 +124,202 @@ class TareaServicioController extends Controller
             return $tarea;
         });
 
-        // Notificación + Calendar (descomenta si ya configuraste)
-        // User::find($v['usuario_id'])?->notify(new NotificacionAsignacionTarea($tarea));
-        // dispatch(new CreateTaskCalendarEvent($tarea->id, $v['usuario_id']))->onQueue('calendar');
+        // 👉 Post-proceso: mover adjuntos y registrar recursos
+        $descripcionNueva = $this->syncRecursosDesdeDescripcion($tarea, $request->session()->getId());
+        if ($descripcionNueva !== $tarea->descripcion) {
+            $tarea->update(['descripcion' => $descripcionNueva]);
+        }
 
         return redirect()->route('configuracion.servicios.tableros.show', [
-            'cliente' => $cliente->id,
+            'cliente'  => $cliente->id,
             'servicio' => $servicio->id,
-            'tablero' => $tablero->id,
+            'tablero'  => $tablero->id,
         ])->with('success', "Tarea «{$tarea->titulo}» creada exitosamente.");
     }
+
+    /**
+     * Mueve archivos subidos a draft/{sessionId} → tareas/{tarea_id},
+     * crea registros en tarea_recursos, convierte data-uri a archivo
+     * y reescribe las URLs en el HTML (fragmento, sin <html>/<body>).
+     */
+    private function syncRecursosDesdeDescripcion(TareaServicio $tarea, string $sessionId): string
+{
+    $html = $tarea->descripcion ?? '';
+    if ($html === '') return $html;
+
+    $publicBase  = rtrim(Storage::disk('public')->url(''), '/');   // /storage
+    $draftPrefix = "{$publicBase}/tareas/draft/{$sessionId}/";
+
+    // Cargar DOM como fragmento con un root temporal
+    $dom = new \DOMDocument();
+    libxml_use_internal_errors(true);
+    $dom->loadHTML(
+        '<div id="__root__">' . mb_convert_encoding($html, 'HTML-ENTITIES', 'UTF-8') . '</div>',
+        LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+    );
+    libxml_clear_errors();
+    $root = $dom->getElementById('__root__');
+    $changed = false;
+
+    // Límite seguro para la columna 'titulo' (ajústalo a tu schema real)
+    $tituloMax = 191; // si tu columna es VARCHAR(191); cambia si usas otro tamaño
+
+    // Helper para truncar títulos (respeta multibyte)
+    $limitTitulo = function (?string $txt) use ($tituloMax) {
+        $txt = trim((string) $txt);
+        if ($txt === '') return '';
+        return Str::limit($txt, $tituloMax, '…');
+    };
+
+    // --- Imágenes data: (pegadas/arrastradas en Quill) ---
+    foreach ($dom->getElementsByTagName('img') as $img) {
+        $src = $img->getAttribute('src');
+        if (!$src || strpos($src, 'data:') !== 0) continue;
+
+        if (!preg_match('#^data:(.+?);base64,(.+)$#', $src, $m)) continue;
+        $mime = $m[1];
+        $data = base64_decode($m[2], true);
+        if ($data === false) continue;
+
+        $extMap = [
+            'image/jpeg'   => 'jpg',
+            'image/jpg'    => 'jpg',
+            'image/png'    => 'png',
+            'image/gif'    => 'gif',
+            'image/webp'   => 'webp',
+            'image/svg+xml'=> 'svg',
+        ];
+        $ext = $extMap[$mime] ?? 'bin';
+
+        $finalDir  = "tareas/{$tarea->id}";
+        $filename  = 'img-' . Str::uuid()->toString() . '.' . $ext;
+        $finalPath = "{$finalDir}/{$filename}";
+
+        Storage::disk('public')->makeDirectory($finalDir);
+        Storage::disk('public')->put($finalPath, $data);
+
+        $absPath   = Storage::disk('public')->path($finalPath);
+        $hash      = file_exists($absPath) ? hash_file('sha256', $absPath) : null;
+        $size      = Storage::disk('public')->size($finalPath) ?? 0;
+        $publicUrl = Storage::disk('public')->url($finalPath);
+
+        TareaRecurso::create([
+            'id'          => (string) Str::uuid(),
+            'tarea_id'    => $tarea->id,
+            'tipo'        => 'image',
+            'titulo'      => $limitTitulo($img->getAttribute('alt') ?: pathinfo($finalPath, PATHINFO_FILENAME)),
+            'url'         => $publicUrl,
+            'path'        => $finalPath,
+            'mime'        => $mime,
+            'size_bytes'  => $size,
+            'hash_sha256' => $hash,
+            'orden'       => 1,
+        ]);
+
+        $img->setAttribute('src', $publicUrl);
+        $changed = true;
+    }
+
+    // 1) Imágenes <img> que apuntan a /tareas/draft/{session}
+    foreach ($dom->getElementsByTagName('img') as $img) {
+        $src = $img->getAttribute('src');
+        if (!$src || strpos($src, $draftPrefix) !== 0) continue;
+
+        $relativeDraft = ltrim(str_replace($publicBase . '/', '', $src), '/'); // tareas/draft/{session}/file.ext
+        if (!Storage::disk('public')->exists($relativeDraft)) continue;
+
+        $filename  = basename($relativeDraft);
+        $finalDir  = "tareas/{$tarea->id}";
+        $finalPath = "{$finalDir}/{$filename}";
+
+        if (Storage::disk('public')->exists($finalPath)) {
+            $name = pathinfo($filename, PATHINFO_FILENAME);
+            $ext  = pathinfo($filename, PATHINFO_EXTENSION);
+            $finalPath = "{$finalDir}/{$name}-" . Str::random(5) . ".{$ext}";
+        }
+
+        Storage::disk('public')->makeDirectory($finalDir);
+        Storage::disk('public')->move($relativeDraft, $finalPath);
+
+        $mime      = Storage::disk('public')->mimeType($finalPath) ?? 'application/octet-stream';
+        $size      = Storage::disk('public')->size($finalPath) ?? 0;
+        $absPath   = Storage::disk('public')->path($finalPath);
+        $hash      = file_exists($absPath) ? hash_file('sha256', $absPath) : null;
+        $publicUrl = Storage::disk('public')->url($finalPath);
+
+        TareaRecurso::create([
+            'id'          => (string) Str::uuid(),
+            'tarea_id'    => $tarea->id,
+            'tipo'        => 'image', // según tu ENUM: 'image','file','link'
+            'titulo'      => $limitTitulo($img->getAttribute('alt') ?: pathinfo($finalPath, PATHINFO_FILENAME)),
+            'url'         => $publicUrl,
+            'path'        => $finalPath,
+            'mime'        => $mime,
+            'size_bytes'  => $size,
+            'hash_sha256' => $hash,
+            'orden'       => 1,
+        ]);
+
+        $img->setAttribute('src', $publicUrl);
+        $changed = true;
+    }
+
+    // 2) Enlaces <a>: registrar como recurso 'link' usando el texto visible (y filtrar internos)
+    $appUrl  = rtrim(config('app.url') ?? '', '/');
+    $appHost = '';
+    if ($appUrl) {
+        $pu = parse_url($appUrl);
+        $appHost = $pu['host'] ?? '';
+    }
+
+    foreach ($dom->getElementsByTagName('a') as $a) {
+        $href = trim($a->getAttribute('href') ?? '');
+        if ($href === '') continue;
+
+        $hrefLower = strtolower($href);
+        // Ignorar anchors/pseudo-enlaces
+        if ($hrefLower === '#' || strpos($hrefLower, 'javascript:') === 0) continue;
+
+        // Evita registrar como "link" los archivos internos del propio storage de tareas
+        if (strpos($href, $publicBase . '/tareas/') === 0) continue;
+
+        // Ignorar enlaces internos a la propia app (localhost/127.0.0.1 o mismo host)
+        $hHost = parse_url($href, PHP_URL_HOST);
+        if ($hHost) {
+            if (in_array($hHost, ['127.0.0.1', 'localhost'], true)) continue;
+            if ($appHost && $hHost === $appHost) continue;
+        }
+
+        // Título desde el texto del anchor; si está vacío, usa hostname o 'Enlace'
+        $anchorText = trim($a->textContent ?? '');
+        if ($anchorText === '') {
+            $anchorText = $hHost ?: 'Enlace';
+        }
+
+        $titulo = $limitTitulo($anchorText);
+        if ($titulo === '') $titulo = 'Enlace';
+
+        // Evitar duplicados exactos por URL
+        $exists = $tarea->recursos()->where('tipo', 'link')->where('url', $href)->exists();
+        if ($exists) continue;
+
+        TareaRecurso::create([
+            'id'       => (string) Str::uuid(),
+            'tarea_id' => $tarea->id,
+            'tipo'     => 'link',
+            'titulo'   => $titulo,
+            'url'      => $href,
+            'orden'    => 1,
+        ]);
+    }
+
+    // Devolver fragmento (sin <html>/<body>)
+    $newHtml = '';
+    foreach (iterator_to_array($root->childNodes) as $child) {
+        $newHtml .= $dom->saveHTML($child);
+    }
+    return $changed ? $newHtml : $html;
+}
 
 
     public function show(
@@ -201,4 +400,176 @@ class TareaServicioController extends Controller
 
         return response()->json(['horas' => $horas]);
     }
+
+
+    // app/Http/Controllers/TareaServicioController.php
+
+public function edit(
+    Cliente $cliente,
+    Servicio $servicio,
+    TableroServicio $tablero,
+    ColumnaTableroServicio $columna,
+    TareaServicio $tarea
+) {
+    // Validar jerarquía
+    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+    abort_unless($tablero->servicio_id === $servicio->id, 404);
+    abort_unless($servicio->cliente_id === $cliente->id, 404);
+
+    // Listas para selects
+    $areas   = $servicio->areasContratadas()->orderBy('areas.nombre')->get();
+    $estados = EstadoTarea::orderBy('nombre')->get();
+
+    // Cargar relaciones mínimas para mostrar info en cabecera si quieres
+    $tarea->load(['estado', 'area', 'usuario']);
+
+    return view('configuracion.servicios.tareas.edit', compact(
+        'areas',
+        'estados',
+        'cliente',
+        'servicio',
+        'tablero',
+        'columna',
+        'tarea'
+    ));
+}
+
+public function update(
+    Request $request,
+    Cliente $cliente,
+    Servicio $servicio,
+    TableroServicio $tablero,
+    ColumnaTableroServicio $columna,
+    TareaServicio $tarea
+) {
+    // Validar jerarquía
+    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+    abort_unless($tablero->servicio_id === $servicio->id, 404);
+    abort_unless($servicio->cliente_id === $cliente->id, 404);
+
+    $areaIdsValidas = $servicio->areaIdsContratadas();
+
+    $validated = $request->validate([
+        'titulo'            => ['required', 'string', 'max:255'],
+        'estado_id'         => ['required', Rule::exists('estado_tarea', 'id')],
+        'area_id'           => ['required', 'integer', Rule::in($areaIdsValidas->all())],
+        'usuario_id'        => ['required', Rule::exists('users', 'id')],
+        'descripcion'       => ['required', 'string'],
+        'tiempo_estimado_h' => ['required', 'numeric', 'min:0'],
+        // si quieres permitir mantener una fecha pasada ya guardada, quita 'after_or_equal:today'
+        'fecha_de_entrega'  => ['nullable', 'date'],
+    ]);
+
+    // Sanitizar HTML de Quill
+    $validated['descripcion'] = Purifier::clean($validated['descripcion'], [
+        'HTML.Trusted'             => true,
+        'HTML.SafeIframe'          => true,
+        'URI.SafeIframeRegexp'     => '%^(https?:)?//(www\.youtube\.com/embed/|player\.vimeo\.com/video/)%',
+        'HTML.Allowed'             => implode(',', [
+            'p','b','strong','i','em','u','s','strike','blockquote','pre','code',
+            'ul','ol','li',
+            'a[href|target|rel]',
+            'br',
+            'span[style|class]',
+            'div[style|class]',
+            'h1','h2','h3','h4','h5','h6',
+            'img[src|alt|width|height]',
+            'iframe[src|width|height|frameborder|allowfullscreen]',
+        ]),
+        'CSS.AllowedProperties'    => 'color,background-color,text-align,font-weight,font-style,text-decoration,margin-left,margin-right',
+        'Attr.AllowedClasses'      => 'ql-align-center ql-align-right ql-align-justify ql-indent-1 ql-indent-2 ql-indent-3 ql-size-small ql-size-large ql-size-huge',
+        'Attr.AllowedFrameTargets' => ['_blank','_self'],
+        'URI.AllowedSchemes'       => ['http','https','data'],
+        'AutoFormat.AutoParagraph' => true,
+        'AutoFormat.RemoveEmpty'   => true,
+    ]);
+
+    $estadoAnterior = $tarea->estado_id;
+
+    DB::transaction(function () use ($tarea, $validated, $estadoAnterior) {
+        $tarea->update([
+            'estado_id'         => $validated['estado_id'],
+            'area_id'           => $validated['area_id'],
+            'usuario_id'        => $validated['usuario_id'],
+            'titulo'            => $validated['titulo'],
+            'descripcion'       => $validated['descripcion'],
+            'tiempo_estimado_h' => $validated['tiempo_estimado_h'],
+            'fecha_de_entrega'  => $validated['fecha_de_entrega'] ?? null,
+        ]);
+
+        if ((int)$estadoAnterior !== (int)$validated['estado_id']) {
+            TareaEstadoHistorial::create([
+                'id'                 => (string) Str::uuid(),
+                'tarea_id'           => $tarea->id,
+                'cambiado_por'       => Auth::id() ?? $validated['usuario_id'],
+                'estado_id_anterior' => $estadoAnterior,
+                'estado_id_nuevo'    => $validated['estado_id'],
+                'observacion'        => 'Cambio de estado en edición',
+            ]);
+        }
+    });
+
+    // Reescritura de URLs / guardado de recursos (incluye data: y draft/session)
+    $descripcionNueva = $this->syncRecursosDesdeDescripcion($tarea, $request->session()->getId());
+    if ($descripcionNueva !== $tarea->descripcion) {
+        $tarea->update(['descripcion' => $descripcionNueva]);
+    }
+
+    return redirect()->route('configuracion.servicios.tableros.show', [
+        'cliente'  => $cliente->id,
+        'servicio' => $servicio->id,
+        'tablero'  => $tablero->id,
+    ])->with('success', "Tarea «{$tarea->titulo}» actualizada correctamente.");
+}
+
+public function destroy(
+    \Illuminate\Http\Request $request,
+    \App\Models\Cliente $cliente,
+    \App\Models\Servicio $servicio,
+    \App\Models\TableroServicio $tablero,
+    \App\Models\ColumnaTableroServicio $columna,
+    \App\Models\TareaServicio $tarea
+) {
+    // 1) Validación de jerarquía (mantener para evitar acceso a objetos fuera del contexto)
+    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+    abort_unless($tablero->servicio_id === $servicio->id, 404);
+    abort_unless($servicio->cliente_id === $cliente->id, 404);
+
+    // 2) Borrado seguro (sin policy)
+    DB::transaction(function () use ($tarea) {
+        // Cargar relaciones si no están cargadas
+        $tarea->loadMissing('recursos', 'timeLogs');
+
+        // Borrar archivos físicos asociados a recursos
+        foreach ($tarea->recursos as $recurso) {
+            if ($recurso->path && Storage::disk('public')->exists($recurso->path)) {
+                Storage::disk('public')->delete($recurso->path);
+            }
+        }
+        // Borrar carpeta completa de la tarea
+        Storage::disk('public')->deleteDirectory("tareas/{$tarea->id}");
+
+        // Eliminar registros relacionados (si no usas FK en cascada, deja estas líneas)
+        if (method_exists($tarea, 'recursos'))    $tarea->recursos()->delete();
+        if (method_exists($tarea, 'timeLogs'))    $tarea->timeLogs()->delete();
+        if (method_exists($tarea, 'estadoHistorial')) {
+            $tarea->estadoHistorial()->delete();
+        } else {
+            DB::table('tarea_estados_historial')->where('tarea_id', $tarea->id)->delete();
+        }
+
+        // Borrar la tarea
+        $tarea->delete();
+    });
+
+    return redirect()->route('configuracion.servicios.tableros.show', [
+        'cliente'  => $cliente->id,
+        'servicio' => $servicio->id,
+        'tablero'  => $tablero->id,
+    ])->with('success', "Tarea «{$tarea->titulo}» eliminada correctamente.");
+}
+
 }

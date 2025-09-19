@@ -20,6 +20,7 @@ use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Controllers\FasesServicioInstanciaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Configuracion\ServiciosConfigController;
+use App\Http\Controllers\TareaRecursoController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -307,6 +308,24 @@ Route::middleware(['auth'])->group(function () {
         [TareaServicioController::class, 'show']
     )->name('tareas.show');
 
+    // Editar (form)
+Route::get(
+    '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}/edit',
+    [TareaServicioController::class, 'edit']
+)->name('tareas.editInColumn');
+
+// Actualizar (PUT)
+Route::put(
+    '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}',
+    [TareaServicioController::class, 'update']
+)->name('tareas.updateInColumn');
+
+// Eliminar (DELETE)
+Route::delete(
+    '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}',
+    [TareaServicioController::class, 'destroy']
+)->name('tareas.destroyInColumn');
+
     // (Si aún usas el modal por AJAX para otras partes)
     Route::get(
         '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}/modal',
@@ -320,4 +339,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/ajax/servicios/{servicio}/areas/{area}/horas', [TareaServicioController::class, 'horasContratadasArea'])
         ->name('ajax.servicios.areas.horas');
 });
+
+
+// routes/web.php
+Route::middleware('auth')->group(function () {
+    Route::post('/quill/upload', [TareaRecursoController::class, 'store'])
+        ->name('quill.upload');
+});
+
+Route::get('/tareas/{tarea}/recursos/{recurso}/descargar', [TareaRecursoController::class, 'download'])
+    ->name('tareas.recursos.download');
 require __DIR__ . '/auth.php';

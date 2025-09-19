@@ -1,3 +1,4 @@
+{{-- resources/views/configuracion/servicios/tareas/create.blade.php --}}
 <x-app-layout>
     <x-slot name="titulo">Crear nueva tarea</x-slot>
 
@@ -81,7 +82,6 @@
                             servicios” antes de crear tareas.
                         </div>
                     @endif
-
                 </div>
 
                 <div class="col-md-6">
@@ -122,6 +122,8 @@
                     <label class="label mb-2">Descripción:</label>
                     <div id="editor-container" style="height: 200px;"></div>
                     <input type="hidden" name="descripcion" id="descripcion" value="{{ old('descripcion') }}">
+                    {{-- input file oculto para subir imágenes desde Quill --}}
+                    <input type="file" id="quill-image-input" accept="image/*" class="d-none">
                 </div>
             </div>
 
@@ -157,6 +159,38 @@
                 }
             });
 
+            // Handler personalizado para imagen
+            const toolbar = quill.getModule('toolbar');
+            toolbar.addHandler('image', () => {
+                document.getElementById('quill-image-input').click();
+            });
+
+            document.getElementById('quill-image-input').addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                try {
+                    const form = new FormData();
+                    form.append('file', file);
+                    form.append('_token', '{{ csrf_token() }}');
+
+                    const res = await fetch('{{ route('quill.upload') }}', {
+                        method: 'POST',
+                        body: form,
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    if (!res.ok) throw new Error('Error subiendo archivo');
+
+                    const data = await res.json();
+                    const range = quill.getSelection(true);
+                    quill.insertEmbed(range.index, 'image', data.url, 'user');
+                    quill.setSelection(range.index + 1, 0);
+                    e.target.value = '';
+                } catch (err) {
+                    console.error(err);
+                    alert('No fue posible subir la imagen.');
+                }
+            });
 
             // Pre-cargar old('descripcion') si viene del back
             (function preloadOld() {
@@ -164,7 +198,7 @@
                 if (oldHtml) quill.root.innerHTML = oldHtml;
             })();
 
-            // ⬅️ ID correcto del formulario
+            // Submit
             document.getElementById('formCrearTarea').addEventListener('submit', function (e) {
                 const contenido = quill.root.innerHTML.trim();
                 const textoPlano = quill.getText().trim();
@@ -177,7 +211,7 @@
                 document.getElementById('descripcion').value = contenido;
             });
 
-            // Reloj para el campo informativo
+            // Reloj informativo
             function actualizarFechaHora() {
                 const input = document.getElementById("fechaCreacion");
                 const d = new Date();
@@ -189,7 +223,6 @@
                 actualizarFechaHora();
                 setInterval(actualizarFechaHora, 60000);
             });
-
 
             /* ==== ELEMENTOS ==== */
             const areaSelect = document.getElementById('area_id');
@@ -219,15 +252,13 @@
             /* ==== AJAX ==== */
             async function cargarUsuariosPorArea(areaId, preselectedId = null) {
                 if (!areaId) { setUsuariosOptions([]); return; }
-
-                // Estado "cargando"
                 usuarioSelect.disabled = true;
                 usuarioSelect.innerHTML = '<option selected disabled>Cargando...</option>';
 
                 try {
                     const base = "{{ route('ajax.areas.usuarios', ':area') }}".replace(':area', areaId);
                     const url = new URL(base, window.location.origin);
-                    url.searchParams.set('servicio_id', "{{ $servicio->id }}"); // MUY IMPORTANTE
+                    url.searchParams.set('servicio_id', "{{ $servicio->id }}");
 
                     const res = await fetch(url.toString(), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
                     if (!res.ok) throw new Error('HTTP ' + res.status);
@@ -259,30 +290,23 @@
                 }
             }
 
-            /* ==== CONTROLADOR ÚNICO DEL CAMBIO DE ÁREA ==== */
             async function onAreaChange(areaId, preselectedUserId = null) {
-                // Lanza ambas en paralelo y espera a que terminen (sin bloquear la UI innecesariamente)
                 await Promise.all([
                     cargarUsuariosPorArea(areaId, preselectedUserId),
                     cargarTiempoDisponible(areaId),
                 ]);
             }
 
-            /* ==== EVENTOS ==== */
             areaSelect?.addEventListener('change', (e) => {
                 onAreaChange(e.target.value, null);
             });
 
-            /* ==== PRE-CARGA DE OLD() ==== */
             document.addEventListener('DOMContentLoaded', () => {
                 const oldArea = "{{ old('area_id') }}";
                 const oldUsuario = "{{ old('usuario_id') }}";
-
-                // Si vienes de validación fallida, repuebla todo coordinadamente:
                 if (oldArea) {
                     onAreaChange(oldArea, oldUsuario);
                 } else {
-                    // Si no hay old(), deja el colaborador deshabilitado y 0 horas
                     setUsuariosOptions([]);
                     if (tiempoDisponibleEl) tiempoDisponibleEl.textContent = '0';
                 }
