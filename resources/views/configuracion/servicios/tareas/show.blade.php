@@ -7,31 +7,32 @@
     'tablero' => $tablero->id
 ]) }}" class="btn btn-secondary me-2">
             Volver al tablero
-            <a class="btn btn-primary btn-pill me-2" href="{{ route('tareas.editInColumn', [
+        </a>
+
+        <a class="btn btn-primary btn-pill me-2" href="{{ route('tareas.editInColumn', [
     'cliente' => $cliente->id,
     'servicio' => $servicio->id,
     'tablero' => $tablero->id,
     'columna' => $columna->id,
     'tarea' => $tarea->id,
 ]) }}">
-                Editar
-            </a>
+            Editar
+        </a>
 
-            <form method="POST" class="d-inline" action="{{ route('tareas.destroyInColumn', [
+        <form method="POST" class="d-inline form-eliminar" action="{{ route('tareas.destroyInColumn', [
     'cliente' => $cliente->id,
     'servicio' => $servicio->id,
     'tablero' => $tablero->id,
     'columna' => $columna->id,
     'tarea' => $tarea->id,
-]) }}" onsubmit="return confirm('¿Seguro que deseas eliminar esta tarea? Esta acción no se puede deshacer.');">
-                @csrf
-                @method('DELETE')
-                <button type="submit" class="btn btn-outline-danger btn-pill">
-                    Eliminar
-                </button>
-            </form>
-
-
+]) }}" data-titulo="{{ $tarea->titulo }}" data-area="{{ optional($tarea->area)->nombre ?? '—' }}"
+            data-estado="{{ optional($tarea->estado)->nombre ?? '—' }}">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-outline-danger btn-pill">
+                Eliminar
+            </button>
+        </form>
     </x-slot>
 
     <x-slot name="titulo">
@@ -100,6 +101,18 @@
                 margin-right: .5rem;
                 border-radius: 3px;
             }
+
+            .task-scroll {
+                max-height: calc(100vh - 220px);
+                overflow: auto;
+            }
+
+            .avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
         </style>
 
         <div class="card border-0 shadow rounded w-75 mx-auto">
@@ -156,28 +169,27 @@
                 {{-- Descripción (HTML Quill) --}}
                 <div class="mt-4">
                     <div class="text-muted small mb-2">Descripción:</div>
-                    <div class="ps-4 quill-content">{!! $tarea->descripcion !!}</div>
+                    <div class="ps-4 task-scroll quill-content">{!! $tarea->descripcion !!}</div>
                 </div>
 
                 @php
                     $imagenes = $tarea->recursos()->where('tipo', 'image')->orderBy('orden')->get();
                     $links = $tarea->recursos()->where('tipo', 'link')->orderBy('orden')->get();
 
-                    // Resolver URL relativa para mostrar (respeta host/puerto actuales)
                     $resolverUrlImagen = function ($pathOrUrl) {
                         $val = (string) ($pathOrUrl ?? '');
                         $val = str_replace('\\', '/', $val);
-                        if (\Illuminate\Support\Str::startsWith($val, ['http://', 'https://', '//', '/storage/'])) {
+                        if (\Illuminate\Support\Str::startsWith($val, ['http://', 'https://', '//', '/storage/']))
                             return $val;
-                        }
+
                         $publicRoot = str_replace('\\', '/', public_path());
                         if (\Illuminate\Support\Str::startsWith($val, $publicRoot)) {
                             $val = \Illuminate\Support\Str::after($val, $publicRoot);
                         }
                         $val = '/' . ltrim($val, '/');
-                        if (\Illuminate\Support\Str::startsWith($val, '/tareas/')) {
+                        if (\Illuminate\Support\Str::startsWith($val, '/tareas/'))
                             return url('/storage' . $val, [], false);
-                        }
+
                         $val = ltrim($val, '/');
                         return url('/storage/' . $val, [], false);
                     };
@@ -199,15 +211,10 @@
                                         <div class="small text-muted me-2 flex-grow-1 text-truncate">
                                             {{ $img->titulo ?? basename(parse_url($src, PHP_URL_PATH)) }}
                                         </div>
-                                        {{-- Botón Descargar (vía controlador para forzar attachment) --}}
                                         <a href="{{ route('tareas.recursos.download', ['tarea' => $tarea->id, 'recurso' => $img->id]) }}"
                                             class="btn btn-sm btn-outline-secondary" title="Descargar">
                                             Descargar
                                         </a>
-                                        {{-- Alternativa simple (misma URL de la imagen con atributo download)
-                                        <a href="{{ $src }}" download
-                                            class="btn btn-sm btn-outline-secondary ms-2">Descargar</a>
-                                        --}}
                                     </div>
                                 </div>
                             @endforeach
@@ -241,10 +248,282 @@
                     </div>
                 @endif
 
+                <hr>
+
+                <div class="comentarios px-5">
+                    <div class="mb-2 fw-semibold" style="color:#003B7B;">Comentarios y Actividades</div>
+
+
+
+                    @php
+                        $tz = 'America/Bogota';
+                        $horasReales = (float) $tarea->timeLogs->sum('duracion_h');
+                        $fechaFinal = $tarea->finalizada_at?->copy()?->timezone($tz)?->format('d/m/Y g:i a');
+                    @endphp
+
+                    <div class="border rounded-3 p-3 p-md-4 mb-4" style="background:#fafbfc; border-color:#edf1f5;">
+                        <div class="row g-4 align-items-end">
+                            {{-- Fecha de tarea completada --}}
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Fecha de tarea
+                                    completada</label>
+                                <input type="text" class="form-control" disabled value="{{ $fechaFinal ?: '' }}"
+                                    readonly style="background:#f1f2f4; border-color:#e3e6ea; color:#5b6570;">
+                                @if(!$fechaFinal)
+                                    <small class="text-muted">Se completa automáticamente al pasar a un estado
+                                        final.</small>
+                                @endif
+                            </div>
+
+                            {{-- Tiempo real usado (h) --}}
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Tiempo real
+                                    usado</label>
+                                <div class="d-flex align-items-center">
+                                    <span class="badge rounded-pill px-3 py-2"
+                                        style="background:#f1f2f4; color:#2b2f33; font-weight:600; font-size:.95rem;">
+                                        {{ number_format($horasReales, 2) }}
+                                    </span>
+                                    <span class="ms-2">horas</span>
+                                </div>
+                                <small class="text-muted">Suma de todos los registros de tiempo de la tarea.</small>
+                            </div>
+
+                            {{-- Actualizar estado y registrar tiempo rápido --}}
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Actualizar estado /
+                                    tiempo</label>
+
+                                <form method="POST" action="{{ route('tareas.updateEstadoTiempo', [
+    'cliente' => $cliente->id,
+    'servicio' => $servicio->id,
+    'tablero' => $tablero->id,
+    'columna' => $columna->id,
+    'tarea' => $tarea->id
+]) }}">
+                                    @csrf
+                                    @method('PUT')
+
+                                    <div class="mb-2">
+                                        <select name="estado_id" class="form-select" {{ $tarea->finalizada_at ? 'disabled' : '' }}>
+                                            @foreach ($estados as $estado)
+                                                <option value="{{ $estado->id }}" @selected($tarea->estado_id == $estado->id)>
+                                                    {{ $estado->nombre }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+                                        @if($tarea->finalizada_at)
+                                            <input type="hidden" name="estado_id" value="{{ $tarea->estado_id }}">
+                                            <small class="text-muted">La tarea ya está finalizada.</small>
+                                        @endif
+                                    </div>
+
+                                    <div class="row g-2">
+                                        <div class="col-5">
+                                            <input type="number" name="duracion_real_h" min="0" step="0.25"
+                                                class="form-control" placeholder="0.00 h">
+                                        </div>
+                                        <div class="col-7">
+                                            <input type="text" name="nota_tiempo" maxlength="500" class="form-control"
+                                                placeholder="Nota (opcional)">
+                                        </div>
+                                    </div>
+
+                                    <div class="d-grid mt-2">
+                                        <button class="btn btn-primary" type="submit"
+                                            style="background-color:#003B7B;border-color:#003B7B;">
+                                            Guardar
+                                        </button>
+                                    </div>
+
+                                    <small class="text-muted d-block mt-1">
+                                        Si ingresas horas, se registrará un time log desde ahora hacia atrás.
+                                    </small>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    {{-- Editor de comentarios (Quill se inicializa en resources/js/app.js) --}}
+                    <form id="formComentario" method="POST"
+                        action="{{ route('tareas.comentarios.store', $tarea->id) }}">
+                        @csrf
+                        <div class="border rounded mb-3">
+                            <div id="comment-editor" style="height: 180px;"
+                                data-upload-url="{{ route('quill.upload') }}" data-csrf-token="{{ csrf_token() }}">
+                            </div>
+
+                            <input type="hidden" name="comentario_html" id="comentario_html">
+                            <input type="file" id="quill-comment-image-input" accept="image/*" class="d-none">
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mb-4">
+                            <button type="submit" class="btn btn-primary" id="btnGuardarComentario"
+                                style="background-color:#003B7B;border-color:#003B7B;">
+                                Comentar
+                            </button>
+                        </div>
+                    </form>
+
+                    {{-- Comentarios reales --}}
+                    <div class="vstack gap-4 mt-4">
+                        @forelse($tarea->comentarios as $c)
+                            <div class="d-flex align-items-start gap-3">
+                                {{-- Avatar (inicial si no hay foto) --}}
+                                @php
+                                    /** @var \App\Models\User|null $autor */
+                                    $autor = $c->autor;
+
+                                    // 1) Detectar la mejor URL de foto disponible
+                                    $foto = null;
+                                    if ($autor) {
+                                        if (!empty($autor->profile_photo_url ?? null)) {
+                                            $foto = $autor->profile_photo_url;
+                                        } elseif (!empty($autor->profile_photo_path ?? null)) {
+                                            $foto = \Illuminate\Support\Facades\Storage::url($autor->profile_photo_path);
+                                        } elseif (!empty($autor->foto_perfil ?? null)) { // tu campo propio
+                                            $val = (string) $autor->foto_perfil;
+                                            $foto = \Illuminate\Support\Str::startsWith($val, ['http://', 'https://', '/storage/'])
+                                                ? $val
+                                                : \Illuminate\Support\Facades\Storage::url($val);
+                                        } elseif (!empty($autor->avatar ?? null)) {
+                                            $foto = $autor->avatar;
+                                        } elseif (!empty($autor->photo_url ?? null)) {
+                                            $foto = $autor->photo_url;
+                                        }
+                                    }
+
+                                    // 2) Gravatar como respaldo si hay email
+                                    $gravatar = null;
+                                    if (!empty($autor?->email)) {
+                                        $hash = md5(strtolower(trim($autor->email)));
+                                        $gravatar = "https://www.gravatar.com/avatar/{$hash}?s=72&d=identicon";
+                                    }
+
+                                    // 3) Inicial para el fallback visual
+                                    $inicial = strtoupper(mb_substr($autor->name ?? 'U', 0, 1));
+                                @endphp
+
+                                {{-- Render: foto si existe; si la imagen falla, cae a gravatar (o default). Si no hay nada,
+                                inicial. --}}
+                                @if($foto || $gravatar)
+                                    <img src="{{ $foto ?: $gravatar }}" alt="Foto de {{ $autor->name ?? 'usuario' }}"
+                                        class="avatar" width="36" height="36" loading="lazy"
+                                        onerror="this.onerror=null; this.src='{{ $gravatar ?: asset('images/default-profile.png') }}';">
+                                @else
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white"
+                                        style="width:36px;height:36px;">
+                                        {{ $inicial }}
+                                    </div>
+                                @endif
+
+
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong>{{ optional($c->autor)->name ?? 'Usuario' }}</strong>
+                                        <small class="text-muted">•
+                                            {{ optional($c->created_at)->format('d M Y, H:i') }}</small>
+
+                                        @if(auth()->check() && ($puedeBorrarComentarios || (int) $c->usuario_id === (int) auth()->id()))
+                                            <form method="POST"
+                                                action="{{ route('tareas.comentarios.destroy', [$tarea->id, $c->id]) }}"
+                                                class="ms-auto form-eliminar-comentario"
+                                                data-autor="{{ optional($c->autor)->name ?? 'Usuario' }}">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
+                                            </form>
+                                        @endif
+                                    </div>
+
+                                    {{-- Contenido del comentario (HTML sanitizado en servidor) --}}
+                                    <div class="quill-content mt-2">{!! $c->comentario !!}</div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-muted">Aún no hay comentarios. ¡Sé el primero en comentar!</div>
+                        @endforelse
+                    </div>
+                </div>
             </div>
         </div>
 
         {{-- @include('configuracion.servicios.tareas._historial', ['tarea'=>$tarea]) --}}
         {{-- @include('configuracion.servicios.tareas._timelogs', ['tarea'=>$tarea]) --}}
     </x-slot>
+
+    {{-- Scripts locales (no Quill; Quill se maneja en resources/js/app.js) --}}
+    @push('scripts')
+        <script>
+            (function () {
+                // Confirmación para eliminar tarea
+                function onDeleteSubmit(e) {
+                    const form = e.target.closest && e.target.closest('form.form-eliminar');
+                    if (!form) return;
+                    e.preventDefault();
+
+                    const titulo = form.dataset.titulo || 'esta tarea';
+                    const area = form.dataset.area || '—';
+                    const estado = form.dataset.estado || '—';
+
+                    Swal.fire({
+                        title: `¿Estás seguro de eliminar la tarea “${titulo}”?`,
+                        html: `<div style="text-align:left;">
+                                                                                                <p>Esta acción es <b>permanente</b> y <b>no se puede deshacer</b>.</p>
+                                                                                                <hr><p><b>Área:</b> ${area}</p><p><b>Estado:</b> ${estado}</p>
+                                                                                               </div>`,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            const btn = form.querySelector('button[type="submit"]');
+                            if (btn) { btn.disabled = true; btn.textContent = 'Eliminando…'; }
+                            HTMLFormElement.prototype.submit.call(form);
+                        }
+                    });
+                }
+
+                // Confirmación para eliminar comentario
+                function onDeleteCommentSubmit(e) {
+                    const form = e.target.closest && e.target.closest('form.form-eliminar-comentario');
+                    if (!form) return;
+                    e.preventDefault();
+
+                    const autor = form.dataset.autor || 'este usuario';
+
+                    Swal.fire({
+                        title: `¿Eliminar comentario de ${autor}?`,
+                        text: 'Esta acción no se puede deshacer.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Sí, eliminar',
+                        cancelButtonText: 'Cancelar'
+                    }).then((res) => {
+                        if (res.isConfirmed) {
+                            const btn = form.querySelector('button[type="submit"]');
+                            if (btn) { btn.disabled = true; btn.textContent = 'Eliminando…'; }
+                            HTMLFormElement.prototype.submit.call(form);
+                        }
+                    });
+                }
+
+                function init() {
+                    document.removeEventListener('submit', onDeleteSubmit, true);
+                    document.addEventListener('submit', onDeleteSubmit, true);
+
+                    document.removeEventListener('submit', onDeleteCommentSubmit, true);
+                    document.addEventListener('submit', onDeleteCommentSubmit, true);
+                }
+
+                ['DOMContentLoaded', 'turbo:load', 'livewire:load'].forEach(evt =>
+                    document.addEventListener(evt, init)
+                );
+                if (document.readyState === 'interactive' || document.readyState === 'complete') init();
+            })();
+        </script>
+    @endpush
 </x-app-layout>

@@ -25,7 +25,7 @@
             </div>
         @endif
 
-        <form
+        <form id="formCrearTablero"
             action="{{ route('configuracion.servicios.tableros.store', ['cliente' => $cliente->id, 'servicio' => $servicio->id]) }}"
             method="POST" class="card shadow-sm">
             @csrf
@@ -56,7 +56,6 @@
                 <div class="mb-3">
                     <label class="form-label">Fases del servicio que serán columnas del tablero:</label>
                     <div class="row g-3">
-
                         @forelse($fasesInstancias as $index => $fase)
                             <div class="col-md-4">
                                 <div class="card h-100">
@@ -64,9 +63,7 @@
                                         <h6 class="card-title mb-1">
                                             {{ $fase->plantilla->nombre ?? $fase->nombre }}
                                         </h6>
-                                        @php
-                                            $descFase = $fase->plantilla->descripcion ?? $fase->descripcion;
-                                        @endphp
+                                        @php $descFase = $fase->plantilla->descripcion ?? $fase->descripcion; @endphp
                                         @if($descFase)
                                             <p class="card-text small text-muted">{{ $descFase }}</p>
                                         @endif
@@ -109,16 +106,81 @@
         </form>
     </x-slot>
 
-    @section('alert')
+    {{-- Reemplaza @section('alert') por @push('scripts') --}}
+    @push('scripts')
         <script>
-            @if(session('success'))
-                Swal.fire({
-                    title: '¡Éxito!',
-                    text: '{{ session('success') }}',
-                    icon: 'success',
-                    confirmButtonText: 'Ok'
-                });
-            @endif
+            (function () {
+                const formSelector = '#formCrearTablero';
+
+                async function onSubmit(e) {
+                    const form = e.target.closest && e.target.closest(formSelector);
+                    if (!form) return;
+
+                    e.preventDefault();
+                    if (form.dataset.submitting === '1') return; // evita doble envío
+
+                    const nombre = (document.getElementById('nombre_del_tablero')?.value || '').trim() || 'sin nombre';
+                    const estadoSel = document.getElementById('estado_tablero_id');
+                    const estadoTxt = estadoSel ? (estadoSel.options[estadoSel.selectedIndex]?.text || '—') : '—';
+                    const cantColumnas = form.querySelectorAll('input[name^="columnas["][name$="[nombre]"]').length;
+
+                    // Si no hay columnas, muestra aviso y no envía
+                    if (cantColumnas === 0) {
+                        if (window.Swal && Swal.fire) {
+                            await Swal.fire({
+                                title: 'Sin fases',
+                                text: 'No puedes crear un tablero sin fases/columnas. Configura las fases primero.',
+                                icon: 'info',
+                            });
+                        } else {
+                            alert('No puedes crear un tablero sin fases/columnas. Configura las fases primero.');
+                        }
+                        return;
+                    }
+
+                    let confirmed = false;
+                    if (window.Swal && typeof Swal.fire === 'function') {
+                        const res = await Swal.fire({
+                            title: `¿Crear el tablero “${nombre}”?`,
+
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonText: 'Sí, crear',
+                            cancelButtonText: 'Cancelar'
+                        });
+                        confirmed = !!(res && (res.isConfirmed === true || res.value === true));
+                    } else {
+                        confirmed = window.confirm(`¿Crear el tablero "${nombre}" con ${cantColumnas} columna(s) y estado ${estadoTxt}?`);
+                    }
+
+                    if (confirmed) {
+                        form.dataset.submitting = '1';
+                        const btn = form.querySelector('button[type="submit"]');
+                        if (btn) { btn.disabled = true; btn.textContent = 'Creando…'; }
+                        HTMLFormElement.prototype.submit.call(form);
+                    }
+                }
+
+                function init() {
+                    document.removeEventListener('submit', onSubmit, true);
+                    document.addEventListener('submit', onSubmit, true);
+                }
+
+                // Soporte para navegaciones con Turbo/Livewire y carga tradicional
+                ['DOMContentLoaded', 'turbo:load', 'livewire:load'].forEach(evt =>
+                    document.addEventListener(evt, init)
+                );
+                if (document.readyState === 'interactive' || document.readyState === 'complete') init();
+
+                // Alertas de sesión (éxito post-creación)
+                @if(session('success'))
+                    if (window.Swal && Swal.fire) {
+                        Swal.fire({ title: '¡Éxito!', text: '{{ session('success') }}', icon: 'success' });
+                    } else {
+                        alert('{{ session('success') }}');
+                    }
+                @endif
+        })();
         </script>
-    @endsection
+    @endpush
 </x-app-layout>

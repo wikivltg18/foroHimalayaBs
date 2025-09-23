@@ -36,7 +36,7 @@ class DashboardMetricsService
         // WIP actual (estados "en progreso" o los que definas)
         $wip = (clone $tareas)
             ->whereNull('finalizada_at')
-            ->whereIn('id_estado_tarjeta', \App\Models\EstadoTarea::wipIds())
+            ->whereIn('id_estado', \App\Models\EstadoTarea::wipIds())
             ->count();
 
         // Horas registradas por logs en rango

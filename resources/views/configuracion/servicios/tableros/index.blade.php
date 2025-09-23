@@ -11,11 +11,16 @@
     </x-slot>
 
     <x-slot name="slot">
-
-        @if(session('success'))
-            <div class="alert alert-success">{{ session('success') }}</div>
+        @if (session('success'))
+            <script>
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: {!! json_encode(session('success')) !!},
+                    icon: 'success',
+                    confirmButtonText: 'Ok'
+                });
+            </script>
         @endif
-
         @if($tableros->isEmpty())
             <div class="alert alert-info">Este cliente aún no tiene tableros creados.</div>
         @endif
@@ -80,7 +85,69 @@
 
     </x-slot>
 
-    @section('alert')
-        <script></script>
-    @endsection
+    {{-- ...tu vista tal cual... --}}
+
+    @push('scripts')
+        <script>
+            (function () {
+                // Helper con fallback si no está SweetAlert2
+                function showAlert(opts) {
+                    if (window.Swal && typeof Swal.fire === 'function') {
+                        return Swal.fire(opts);
+                    } else {
+                        const msg = (opts.title ? opts.title + ': ' : '') + (opts.text || (opts.html ? (new DOMParser().parseFromString(opts.html, 'text/html').body.textContent || '') : ''));
+                        alert(msg);
+                        return Promise.resolve();
+                    }
+                }
+
+                // Mensajes de sesión
+                @if(session('success'))
+                    showAlert({
+                        title: '¡Éxito!',
+                        text: {!! json_encode(session('success')) !!},
+                        icon: 'success',
+                        confirmButtonText: 'Ok'
+                    });
+                @endif
+
+                @if(session('error'))
+                    showAlert({
+                        title: 'Error',
+                        text: {!! json_encode(session('error')) !!},
+                        icon: 'error',
+                        confirmButtonText: 'Ok'
+                    });
+                @endif
+
+                @if(session('warning'))
+                    showAlert({
+                        title: 'Atención',
+                        text: {!! json_encode(session('warning')) !!},
+                        icon: 'warning',
+                        confirmButtonText: 'Ok'
+                    });
+                @endif
+
+                @if(session('info'))
+                    showAlert({
+                        title: 'Información',
+                        text: {!! json_encode(session('info')) !!},
+                        icon: 'info',
+                        confirmButtonText: 'Ok'
+                    });
+                @endif
+
+                @if ($errors->any())
+                    showAlert({
+                        title: 'Revisa los campos',
+                        html: `{!! collect($errors->all())->map(fn($e) => '<div class="text-start">• ' . e($e) . '</div>')->implode('') !!}`,
+                        icon: 'error',
+                        confirmButtonText: 'Entendido'
+                    });
+                @endif
+                })();
+        </script>
+    @endpush
+
 </x-app-layout>

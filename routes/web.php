@@ -12,15 +12,17 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ModalidadController;
 use App\Http\Controllers\HerramientaController;
 use App\Http\Controllers\MapaClienteController;
+use App\Http\Controllers\QuillUploadController;
 use App\Http\Controllers\FaseServicioController;
+use App\Http\Controllers\TareaRecursoController;
 use App\Http\Controllers\TipoServicioController;
 use App\Http\Controllers\TareaServicioController;
 use App\Http\Controllers\TableroServicioController;
+use App\Http\Controllers\TareaComentarioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use App\Http\Controllers\FasesServicioInstanciaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Configuracion\ServiciosConfigController;
-use App\Http\Controllers\TareaRecursoController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -326,11 +328,6 @@ Route::delete(
     [TareaServicioController::class, 'destroy']
 )->name('tareas.destroyInColumn');
 
-    // (Si aún usas el modal por AJAX para otras partes)
-    Route::get(
-        '/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}/modal',
-        [TareaServicioController::class, 'showModalStrict']
-    )->name('tareas.modal');
 });
 
 Route::middleware('auth')->group(function () {
@@ -340,13 +337,30 @@ Route::middleware('auth')->group(function () {
         ->name('ajax.servicios.areas.horas');
 });
 
-
-// routes/web.php
-Route::middleware('auth')->group(function () {
-    Route::post('/quill/upload', [TareaRecursoController::class, 'store'])
-        ->name('quill.upload');
-});
-
 Route::get('/tareas/{tarea}/recursos/{recurso}/descargar', [TareaRecursoController::class, 'download'])
     ->name('tareas.recursos.download');
+
+Route::middleware('auth')->group(function () {
+    // SIN tarea (create): sube a drafts
+    Route::post('/quill/upload', [TareaRecursoController::class, 'quillUpload'])
+        ->name('quill.upload');
+
+    // CON tarea (show/edit): asocia el recurso a la tarea
+    Route::post('/tareas/{tarea}/quill/upload', [TareaRecursoController::class, 'quillUpload'])
+        ->name('tareas.quill.upload');
+
+    // Comentarios
+    Route::post('/tareas/{tarea}/comentarios', [TareaComentarioController::class, 'store'])
+        ->name('tareas.comentarios.store');
+
+    Route::delete('/tareas/{tarea}/comentarios/{comentario}', [TareaComentarioController::class, 'destroy'])
+        ->name('tareas.comentarios.destroy');
+});
+
+Route::middleware('auth')->group(function () {
+Route::put('/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas/{columna}/tareas/{tarea}/estado-tiempo',
+        [TareaServicioController::class, 'updateEstadoTiempo']
+    )->name('tareas.updateEstadoTiempo');
+});
+    
 require __DIR__ . '/auth.php';

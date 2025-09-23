@@ -16,14 +16,14 @@ class TaskStateService
     public function changeState(TareaServicio $tarea, int $nuevoEstadoId, int $usuarioId): TareaServicio
     {
         return DB::transaction(function () use ($tarea, $nuevoEstadoId, $usuarioId) {
-            $anterior = $tarea->id_estado_tarjeta;
+$anterior = $tarea->estado_id;
 
-            // Evita escribir si no hay cambio
-            if ($anterior === $nuevoEstadoId) {
-                return $tarea;
-            }
+if ($anterior === $nuevoEstadoId) {
+    return $tarea;
+}
 
-            $tarea->forceFill(['id_estado_tarjeta' => $nuevoEstadoId])->save();
+$tarea->forceFill(['estado_id' => $nuevoEstadoId])->save();
+
 
             TareaEstadoHistorial::create([
                 'id'                 => (string) Str::uuid(),
@@ -50,9 +50,10 @@ class TaskStateService
                 'finalizada_por'    => $usuarioId,
             ];
 
-            if ($estadoFinalizadaId && $tarea->id_estado_tarjeta !== $estadoFinalizadaId) {
-                $this->changeState($tarea, $estadoFinalizadaId, $usuarioId, 'Finalización de tarea');
-            }
+            if ($estadoFinalizadaId && $tarea->estado_id !== $estadoFinalizadaId) {
+    $this->changeState($tarea, $estadoFinalizadaId, $usuarioId);
+}
+
 
             $tarea->forceFill($updates)->save();
 

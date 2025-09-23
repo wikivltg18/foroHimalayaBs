@@ -65,14 +65,16 @@
                             @endif
                         </option>
                         @foreach ($areas as $area)
-                            <option value="{{ $area->id }}" @selected(old('area_id') == $area->id)>{{ $area->nombre }}
+                            <option value="{{ $area->id }}" @selected(old('area_id') == $area->id)>
+                                {{ $area->nombre }}
                             </option>
                         @endforeach
                     </select>
 
                     <label class="label mb-2">Colaborador:</label>
                     <select class="form-select mb-2" name="usuario_id" id="usuario_id" required disabled>
-                        <option value="" disabled {{ old('usuario_id') ? '' : 'selected' }}>Seleccione un colaborador
+                        <option value="" disabled {{ old('usuario_id') ? '' : 'selected' }}>
+                            Seleccione un colaborador
                         </option>
                     </select>
 
@@ -120,8 +122,16 @@
             <div class="row mt-3">
                 <div class="col-md-12">
                     <label class="label mb-2">Descripción:</label>
-                    <div id="editor-container" style="height: 200px;"></div>
+
+                    {{-- Quill: solo markup. Se inicializa desde resources/js/app.js --}}
+                    <div id="editor-container" style="height: 200px;" data-upload-url="{{ route('quill.upload') }}"
+                        data-csrf-token="{{ csrf_token() }}" data-target-hidden-id="descripcion" {{-- dónde escribir
+                        HTML al enviar --}} data-source-hidden-id="descripcion" {{-- de dónde precargar old() --}}>
+                    </div>
+
+                    {{-- hidden con el HTML (Laravel old()) --}}
                     <input type="hidden" name="descripcion" id="descripcion" value="{{ old('descripcion') }}">
+
                     {{-- input file oculto para subir imágenes desde Quill --}}
                     <input type="file" id="quill-image-input" accept="image/*" class="d-none">
                 </div>
@@ -139,81 +149,13 @@
         </form>
     </div>
 
+    {{-- Scripts locales (no Quill; Quill se maneja en resources/js/app.js) --}}
     @push('scripts')
-        <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
-        <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
         <script>
-            // Quill
-            const quill = new Quill('#editor-container', {
-                theme: 'snow',
-                modules: {
-                    toolbar: [
-                        [{ header: [1, 2, 3, false] }],
-                        ['bold', 'italic', 'underline', 'strike'],
-                        [{ color: [] }, { background: [] }],
-                        [{ list: 'ordered' }, { list: 'bullet' }],
-                        [{ align: [] }],
-                        ['link', 'image'],
-                        ['clean']
-                    ]
-                }
-            });
-
-            // Handler personalizado para imagen
-            const toolbar = quill.getModule('toolbar');
-            toolbar.addHandler('image', () => {
-                document.getElementById('quill-image-input').click();
-            });
-
-            document.getElementById('quill-image-input').addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                try {
-                    const form = new FormData();
-                    form.append('file', file);
-                    form.append('_token', '{{ csrf_token() }}');
-
-                    const res = await fetch('{{ route('quill.upload') }}', {
-                        method: 'POST',
-                        body: form,
-                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
-                    });
-                    if (!res.ok) throw new Error('Error subiendo archivo');
-
-                    const data = await res.json();
-                    const range = quill.getSelection(true);
-                    quill.insertEmbed(range.index, 'image', data.url, 'user');
-                    quill.setSelection(range.index + 1, 0);
-                    e.target.value = '';
-                } catch (err) {
-                    console.error(err);
-                    alert('No fue posible subir la imagen.');
-                }
-            });
-
-            // Pre-cargar old('descripcion') si viene del back
-            (function preloadOld() {
-                const oldHtml = document.getElementById('descripcion').value;
-                if (oldHtml) quill.root.innerHTML = oldHtml;
-            })();
-
-            // Submit
-            document.getElementById('formCrearTarea').addEventListener('submit', function (e) {
-                const contenido = quill.root.innerHTML.trim();
-                const textoPlano = quill.getText().trim();
-
-                if (textoPlano === '') {
-                    e.preventDefault();
-                    alert('La descripción no puede estar vacía.');
-                    return;
-                }
-                document.getElementById('descripcion').value = contenido;
-            });
-
             // Reloj informativo
             function actualizarFechaHora() {
                 const input = document.getElementById("fechaCreacion");
+                if (!input) return;
                 const d = new Date();
                 const f = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
                 const t = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;

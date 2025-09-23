@@ -94,7 +94,7 @@
                     @empty
                       <div class="col-12">
                         <div class="alert alert-light">Sin horas configuradas. <a
-                            href="{{ route('config.servicios.mapa.show', [$cliente->id, $servicio->id]) }}">Configurar
+                            href="{{ route('config.servicios.edit', [$cliente->id, $servicio->id]) }}">Configurar
                             mapa</a>
                         </div>
                       </div>
@@ -129,13 +129,23 @@
                   </div>
                 </div>
               </div>
-              <div class="modal-footer d-flex justify-content-between">
-                <a href="{{ route('config.servicios.edit', [$cliente->id, $servicio->id]) }}"
-                  class="btn btn-primary">Editar</a>
+              <div class="modal-footer d-flex justify-content-end">
+                <a href="{{ route('config.servicios.edit', [$cliente->id, $servicio->id]) }}" class="btn btn-warning"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-archive"
+                    viewBox="0 0 16 16">
+                    <path
+                      d="M0 2a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2a1 1 0 0 1-1 1v7.5a2.5 2.5 0 0 1-2.5 2.5h-9A2.5 2.5 0 0 1 1 12.5V5a1 1 0 0 1-1-1zm2 3v7.5A1.5 1.5 0 0 0 3.5 14h9a1.5 1.5 0 0 0 1.5-1.5V5zm13-3H1v2h14zM5 7.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5" />
+                  </svg></a>
                 <form method="POST" action="{{ route('config.servicios.destroy', [$cliente->id, $servicio->id]) }}"
                   class="form-eliminar d-inline">
                   @csrf @method('DELETE')
-                  <button class="btn btn-danger">Eliminar</button>
+                  <button class="btn btn-danger"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                      fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                      <path
+                        d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z" />
+                      <path fill-rule="evenodd"
+                        d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z" />
+                    </svg></button>
                 </form>
               </div>
             </div>
@@ -151,56 +161,54 @@
   </x-slot>
 
   @section('alert')
-    <script>
-      document.addEventListener('DOMContentLoaded', function () {
-        // Manejar formularios de eliminación
-        const forms = document.querySelectorAll('.form-eliminar');
+      <script>
+        document.addEventListener('DOMContentLoaded', function () {
+          // Manejar formularios de eliminación
+          const forms = document.querySelectorAll('.form-eliminar');
 
-        forms.forEach(form => {
-          form.addEventListener('submit', async function (e) {
-            e.preventDefault();
+          forms.forEach(form => {
+            form.addEventListener('submit', async function (e) {
+              e.preventDefault();
 
-            const result = await Swal.fire({
-              title: '¿Estás seguro?',
-              text: "Esta acción eliminará el servicio y toda su configuración.",
-              icon: 'warning',
-              showCancelButton: true,
-              confirmButtonColor: '#d33',
-              cancelButtonColor: '#3085d6',
-              confirmButtonText: 'Sí, eliminar',
-              cancelButtonText: 'Cancelar',
-              reverseButtons: true
-            });
-
-            if (result.isConfirmed) {
-              // Mostrar indicador de carga
-              Swal.fire({
-                title: 'Eliminando...',
-                text: 'Por favor espere',
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                showConfirmButton: false,
-                didOpen: () => {
-                  Swal.showLoading();
-                }
+              const result = await Swal.fire({
+                title: '¿Estás seguro?',
+                text: "Esta acción eliminará el servicio y toda su configuración.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                reverseButtons: true
               });
 
-              // Enviar el formulario
-              form.submit();
-            }
-          });
-        });
+              if (result.isConfirmed) {
+                // Mostrar indicador de carga
+                Swal.fire({
+                  title: 'Eliminando...',
+                  text: 'Por favor espere',
+                  allowOutsideClick: false,
+                  allowEscapeKey: false,
+                  showConfirmButton: false,
+                  didOpen: () => {
+                    Swal.showLoading();
+                  }
+                });
 
-        // Mostrar alerta de éxito si hay mensaje en la sesión
-        @if(session('success'))
-          Swal.fire({
-            title: '¡Éxito!',
-            text: '{{ session('success') }}',
-            icon: 'success',
-            confirmButtonText: 'Ok'
+                form.submit();
+              }
+            });
           });
-        @endif
-                          });
-    </script>
+
+          @if(session('success'))
+            Swal.fire({
+              title: '¡Éxito!',
+              text: '{{ session('success') }}',
+              icon: 'success',
+              confirmButtonText: 'Ok'
+            });
+          @endif
+    });
+      </script>
   @endsection
 </x-app-layout>

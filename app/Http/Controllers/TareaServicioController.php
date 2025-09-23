@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Area;
 use App\Models\User;
 use App\Models\Cliente;
@@ -9,6 +10,7 @@ use App\Models\Servicio;
 use App\Models\EstadoTarea;
 use Illuminate\Support\Str;
 use App\Models\TareaRecurso;
+use App\Models\TareaTimeLog;
 use Illuminate\Http\Request;
 use App\Models\TareaServicio;
 use App\Models\TableroServicio;
@@ -323,37 +325,58 @@ class TareaServicioController extends Controller
 
 
     public function show(
-        Request $request,
-        Cliente $cliente,
-        Servicio $servicio,
-        TableroServicio $tablero,
-        ColumnaTableroServicio $columna,
-        TareaServicio $tarea
-    ) {
-        // Validar cadena jerárquica (anti ID tampering)
-        abort_unless(optional($tarea->columna)->id === $columna->id, 404);
-        abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
-        abort_unless($tablero->servicio_id === $servicio->id, 404);
-        abort_unless($servicio->cliente_id === $cliente->id, 404);
+    Request $request,
+    Cliente $cliente,
+    Servicio $servicio,
+    TableroServicio $tablero,
+    ColumnaTableroServicio $columna,
+    TareaServicio $tarea
+) {
+    // Validar cadena jerárquica (anti ID tampering)
+    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+    abort_unless($tablero->servicio_id === $servicio->id, 404);
+    abort_unless($servicio->cliente_id === $cliente->id, 404);
 
-        // Eager loading necesario para la vista
-        $tarea->load([
-            'estado',
-            'area',
-            'usuario',
-            'timeLogs',
-            'columna.tablero',
-            'columna.tablero.cliente',
-        ]);
+    // Eager loading necesario (incluye comentarios con autor)
+    $tarea->load([
+        'estado',
+        'area',
+        'usuario',          // owner/creador
+        'finalizador',      // quien la cerró (si aplica)
+        'usuarios',         // asignados (pivot)
+        'recursos' => fn ($q) => $q->orderBy('tipo')->orderBy('orden'),
+        'timeLogs' => fn ($q) => $q->latest('started_at'),
+        'historiales' => fn ($q) => $q->oldest('created_at'),
+        'historiales.autor:id,name',
+        'historiales.estadoDesde:id,nombre',
+        'historiales.estadoHasta:id,nombre',
+        'comentarios' => fn ($q) => $q->latest('created_at'),
+        'comentarios.autor:id,name,email,foto_perfil',
+        'columna.tablero',
+        'columna.tablero.cliente',
+    ]);
 
-        return view('configuracion.servicios.tareas.show', compact(
-            'cliente',
-            'servicio',
-            'tablero',
-            'columna',
-            'tarea'
-        ));
+    $estados = EstadoTarea::orderBy('nombre')->get();
+    // Bandera para evitar consultas extra en Blade al decidir si se puede borrar comentarios
+    $puedeBorrarComentarios = false;
+    if (auth()->check()) {
+        $puedeBorrarComentarios =
+            ((int) $tarea->usuario_id === (int) auth()->id()) ||
+            $tarea->usuarios->contains(fn ($u) => (int) $u->id === (int) auth()->id());
     }
+
+    return view('configuracion.servicios.tareas.show', [
+        'cliente' => $cliente,
+        'servicio' => $servicio,
+        'tablero'  => $tablero,
+        'columna'  => $columna,
+        'tarea'    => $tarea,
+        'estados'=> $estados,
+        'puedeBorrarComentarios' => $puedeBorrarComentarios,
+    ]);
+}
+
 
     public function usuariosPorArea(Area $area, Request $request)
     {
@@ -525,12 +548,12 @@ public function update(
 }
 
 public function destroy(
-    \Illuminate\Http\Request $request,
-    \App\Models\Cliente $cliente,
-    \App\Models\Servicio $servicio,
-    \App\Models\TableroServicio $tablero,
-    \App\Models\ColumnaTableroServicio $columna,
-    \App\Models\TareaServicio $tarea
+    Request $request,
+    Cliente $cliente,
+    Servicio $servicio,
+    TableroServicio $tablero,
+    ColumnaTableroServicio $columna,
+    TareaServicio $tarea
 ) {
     // 1) Validación de jerarquía (mantener para evitar acceso a objetos fuera del contexto)
     abort_unless(optional($tarea->columna)->id === $columna->id, 404);
@@ -570,6 +593,88 @@ public function destroy(
         'servicio' => $servicio->id,
         'tablero'  => $tablero->id,
     ])->with('success', "Tarea «{$tarea->titulo}» eliminada correctamente.");
+}
+
+
+
+
+public function updateEstadoTiempo(
+    Request $request,
+    Cliente $cliente,
+    Servicio $servicio,
+    TableroServicio $tablero,
+    ColumnaTableroServicio $columna,
+    TareaServicio $tarea
+) {
+    // Validación jerárquica
+    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+    abort_unless($tablero->servicio_id === $servicio->id, 404);
+    abort_unless($servicio->cliente_id === $cliente->id, 404);
+
+    // Validación de inputs
+    $validated = $request->validate([
+        'estado_id'       => ['required', Rule::exists('estado_tarea', 'id')],
+        'duracion_real_h' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+        'nota_tiempo'     => ['nullable', 'string', 'max:500'],
+    ]);
+
+    $nuevoEstadoId = (int) $validated['estado_id'];
+    $duracionRealH = (float) ($validated['duracion_real_h'] ?? 0);
+    $notaTiempo    = $validated['nota_tiempo'] ?? null;
+
+    DB::transaction(function () use ($tarea, $nuevoEstadoId, $duracionRealH, $notaTiempo) {
+        $ahoraUtc         = now('UTC');
+        $userId           = auth()->id();
+        $estadoAnterior   = (int) $tarea->estado_id;
+        $veniaFinalizada  = !is_null($tarea->finalizada_at);
+
+        // Registrar time log
+        if ($duracionRealH > 0 || ($notaTiempo !== null && trim($notaTiempo) !== '')) {
+            $segundos = (int) round(max($duracionRealH, 0) * 3600);
+            $started  = (clone $ahoraUtc)->subSeconds($segundos);
+
+            TareaTimeLog::create([
+                'id'         => (string) Str::uuid(),
+                'tarea_id'   => $tarea->id,
+                'usuario_id' => $userId,
+                'started_at' => $started,
+                'ended_at'   => $ahoraUtc,
+                'duracion_h' => max($duracionRealH, 0),
+                'nota'       => $notaTiempo,
+            ]);
+        }
+
+        // Cambio de estado
+        if ($estadoAnterior !== $nuevoEstadoId) {
+            $tarea->forceFill(['estado_id' => $nuevoEstadoId])->save();
+
+            TareaEstadoHistorial::create([
+                'id'                 => (string) Str::uuid(),
+                'tarea_id'           => $tarea->id,
+                'cambiado_por'       => $userId,
+                'estado_id_anterior' => $estadoAnterior,
+                'estado_id_nuevo'    => $nuevoEstadoId,
+            ]);
+        }
+
+        // Marcar finalización
+        $esFinal = in_array($nuevoEstadoId, EstadoTarea::finalIds(), true);
+
+        if ($esFinal) {
+            $tarea->forceFill([
+                'finalizada_at'  => $tarea->finalizada_at ?: $ahoraUtc,
+                'finalizada_por' => $tarea->finalizada_por ?: $userId,
+            ])->save();
+        } elseif ($veniaFinalizada) {
+            $tarea->forceFill([
+                'finalizada_at'  => null,
+                'finalizada_por' => null,
+            ])->save();
+        }
+    });
+
+    return back()->with('success', 'Estado y tiempos actualizados correctamente.');
 }
 
 }
