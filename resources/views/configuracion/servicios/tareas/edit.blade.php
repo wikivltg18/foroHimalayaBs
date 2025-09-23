@@ -1,4 +1,3 @@
-{{-- resources/views/configuracion/servicios/tareas/edit.blade.php --}}
 <x-app-layout>
     <x-slot name="titulo">Editar tarea</x-slot>
 
@@ -33,6 +32,22 @@
                     <div class="section-title h5 fw-bold py-3" style="color:#003B7B;">Información general</div>
                 </div>
             </div>
+
+            {{-- Aviso y opción de REACTIVAR SOLO en edición --}}
+            @if($tarea->finalizada_at)
+                <div class="alert alert-warning">
+                    Esta tarea está finalizada desde
+                    <strong>{{ $tarea->finalizada_at->timezone('America/Bogota')->format('d/m/Y g:i a') }}</strong>.
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="checkbox" value="1" id="reactivar" name="reactivar">
+                        <label class="form-check-label" for="reactivar">
+                            Re-activar la tarea (volver a abrirla)
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-1">Al re-activarla, se limpiará <code>finalizada_at</code> y
+                        <code>finalizada_por</code>.</small>
+                </div>
+            @endif
 
             <div class="row mt-3">
                 <div class="col-md-10">
@@ -122,16 +137,14 @@
                 <div class="col-md-12">
                     <label class="label mb-2">Descripción:</label>
 
-                    {{-- Quill: solo markup; se inicializa en resources/js/app.js --}}
+                    {{-- Quill --}}
                     <div id="editor-container" style="height: 200px;" data-upload-url="{{ route('quill.upload') }}"
                         data-csrf-token="{{ csrf_token() }}" data-target-hidden-id="descripcion"
                         data-source-hidden-id="descripcion"></div>
 
-                    {{-- hidden con el HTML (para old() y submit) --}}
                     <input type="hidden" name="descripcion" id="descripcion"
                         value="{{ old('descripcion', $tarea->descripcion) }}">
 
-                    {{-- input file para subir imágenes desde Quill --}}
                     <input type="file" id="quill-image-input" accept="image/*" class="d-none">
                 </div>
             </div>
@@ -148,7 +161,6 @@
         </form>
     </div>
 
-    {{-- Scripts propios de la vista (no Quill; Quill vive en resources/js/app.js) --}}
     @push('scripts')
         <script>
             // Fecha/hora informativa
@@ -165,7 +177,7 @@
                 setInterval(actualizarFechaHora, 60000);
             });
 
-            /* ==== SELECTS & HORAS (idéntico flujo a create) ==== */
+            // Selects & horas como en create
             const areaSelect = document.getElementById('area_id');
             const usuarioSelect = document.getElementById('usuario_id');
             const tiempoDisponibleEl = document.getElementById('tiempoDisponible');

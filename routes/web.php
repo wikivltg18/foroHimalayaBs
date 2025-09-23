@@ -362,5 +362,31 @@ Route::put('/clientes/{cliente}/servicios/{servicio}/tableros/{tablero}/columnas
         [TareaServicioController::class, 'updateEstadoTiempo']
     )->name('tareas.updateEstadoTiempo');
 });
+
+
+Route::middleware('auth')->group(function () {
+
+    // Listado "Ver todas"
+    Route::get('/notificaciones', function () {
+        $u = auth()->user();
+        return view('notificaciones.index', [
+            'unread' => $u->unreadNotifications,
+            'all'    => $u->notifications()->latest()->paginate(20),
+        ]);
+    })->name('notificaciones.index');
+
+    // Marcar UNA como leída (botón "Marcar leída" en el dropdown)
+    Route::post('/notificaciones/{id}/read', function ($id) {
+        $n = auth()->user()->notifications()->where('id', $id)->firstOrFail();
+        $n->markAsRead();
+        return back();
+    })->name('notificaciones.read');
+
+    // Marcar TODAS como leídas (botón "Marcar todas" en el dropdown)
+    Route::post('/notificaciones/read-all', function () {
+        auth()->user()->unreadNotifications->markAsRead();
+        return back();
+    })->name('notificaciones.readAll');
+});
     
 require __DIR__ . '/auth.php';

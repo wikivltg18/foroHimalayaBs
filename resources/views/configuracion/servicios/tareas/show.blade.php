@@ -250,101 +250,104 @@
 
                 <hr>
 
-                <div class="comentarios px-5">
+                <div class="comentarios">
                     <div class="mb-2 fw-semibold" style="color:#003B7B;">Comentarios y Actividades</div>
 
 
 
-                    @php
-                        $tz = 'America/Bogota';
-                        $horasReales = (float) $tarea->timeLogs->sum('duracion_h');
-                        $fechaFinal = $tarea->finalizada_at?->copy()?->timezone($tz)?->format('d/m/Y g:i a');
-                    @endphp
+@php
+    $tz = 'America/Bogota';
+    $horasReales = (float) $tarea->timeLogs->sum('duracion_h');
+    $fechaFinal = $tarea->finalizada_at?->copy()?->timezone($tz)?->format('d/m/Y g:i a');
+    $finalizada = (bool) $tarea->finalizada_at;
+    $disabled   = $finalizada ? 'disabled' : '';
+@endphp
 
-                    <div class="border rounded-3 p-3 p-md-4 mb-4" style="background:#fafbfc; border-color:#edf1f5;">
-                        <div class="row g-4 align-items-end">
-                            {{-- Fecha de tarea completada --}}
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Fecha de tarea
-                                    completada</label>
-                                <input type="text" class="form-control" disabled value="{{ $fechaFinal ?: '' }}"
-                                    readonly style="background:#f1f2f4; border-color:#e3e6ea; color:#5b6570;">
-                                @if(!$fechaFinal)
-                                    <small class="text-muted">Se completa automáticamente al pasar a un estado
-                                        final.</small>
-                                @endif
-                            </div>
+<div class="border rounded-3 p-3 p-md-4 mb-4" style="background:#fafbfc; border-color:#edf1f5;">
+    <form method="POST" action="{{ route('tareas.updateEstadoTiempo', [
+        'cliente' => $cliente->id,
+        'servicio' => $servicio->id,
+        'tablero' => $tablero->id,
+        'columna' => $columna->id,
+        'tarea' => $tarea->id
+    ]) }}">
+        @csrf
+        @method('PUT')
 
-                            {{-- Tiempo real usado (h) --}}
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Tiempo real
-                                    usado</label>
-                                <div class="d-flex align-items-center">
-                                    <span class="badge rounded-pill px-3 py-2"
-                                        style="background:#f1f2f4; color:#2b2f33; font-weight:600; font-size:.95rem;">
-                                        {{ number_format($horasReales, 2) }}
-                                    </span>
-                                    <span class="ms-2">horas</span>
-                                </div>
-                                <small class="text-muted">Suma de todos los registros de tiempo de la tarea.</small>
-                            </div>
+        {{-- Fila superior: Estado / Tiempo real usado / Nota --}}
+        <div class="row g-3 align-items-end">
+            {{-- Estado --}}
+            <div class="col-md-4">
+                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Actualizar estado / tiempo</label>
+                <select name="estado_id" class="form-select" {{ $finalizada ? 'disabled' : '' }}>
+                    @foreach ($estados as $estado)
+                        <option value="{{ $estado->id }}" @selected($tarea->estado_id == $estado->id)>
+                            {{ $estado->nombre }}
+                        </option>
+                    @endforeach
+                </select>
+                @if($finalizada)
+                    {{-- Mantener valor al enviar (por si hay otros campos) --}}
+                    <input type="hidden" name="estado_id" value="{{ $tarea->estado_id }}">
+                @endif
+            </div>
 
-                            {{-- Actualizar estado y registrar tiempo rápido --}}
-                            <div class="col-md-4">
-                                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Actualizar estado /
-                                    tiempo</label>
+            {{-- Tiempo real usado (input) --}}
+            <div class="col-md-4">
+                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Tiempo real usado</label>
+                <div class="input-group">
+                    <input type="number" name="duracion_real_h" min="0" step="0.25"
+                           class="form-control" placeholder="0.00" {{ $disabled }}>
+                    <span class="input-group-text">h</span>
+                </div>
+            </div>
 
-                                <form method="POST" action="{{ route('tareas.updateEstadoTiempo', [
-    'cliente' => $cliente->id,
-    'servicio' => $servicio->id,
-    'tablero' => $tablero->id,
-    'columna' => $columna->id,
-    'tarea' => $tarea->id
-]) }}">
-                                    @csrf
-                                    @method('PUT')
+            {{-- Nota --}}
+            <div class="col-md-4">
+                <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Nota (opcional)</label>
+                <input type="text" name="nota_tiempo" maxlength="500" class="form-control"
+                       placeholder="" {{ $disabled }}>
+            </div>
+        </div>
 
-                                    <div class="mb-2">
-                                        <select name="estado_id" class="form-select" {{ $tarea->finalizada_at ? 'disabled' : '' }}>
-                                            @foreach ($estados as $estado)
-                                                <option value="{{ $estado->id }}" @selected($tarea->estado_id == $estado->id)>
-                                                    {{ $estado->nombre }}
-                                                </option>
-                                            @endforeach
-                                        </select>
-                                        @if($tarea->finalizada_at)
-                                            <input type="hidden" name="estado_id" value="{{ $tarea->estado_id }}">
-                                            <small class="text-muted">La tarea ya está finalizada.</small>
-                                        @endif
-                                    </div>
+        @if($finalizada)
+            <div class="form-text text-danger mt-2">
+                Esta tarea ya ha sido finalizada. Para reabrirla, contacta al administrador.
+            </div>
+        @endif
 
-                                    <div class="row g-2">
-                                        <div class="col-5">
-                                            <input type="number" name="duracion_real_h" min="0" step="0.25"
-                                                class="form-control" placeholder="0.00 h">
-                                        </div>
-                                        <div class="col-7">
-                                            <input type="text" name="nota_tiempo" maxlength="500" class="form-control"
-                                                placeholder="Nota (opcional)">
-                                        </div>
-                                    </div>
+        <hr class="my-4">
 
-                                    <div class="d-grid mt-2">
-                                        <button class="btn btn-primary" type="submit"
-                                            style="background-color:#003B7B;border-color:#003B7B;">
-                                            Guardar
-                                        </button>
-                                    </div>
+        {{-- Fila inferior: Fecha completada / total horas / ayuda + Guardar --}}
+        <div class="row align-items-center g-3">
+            {{-- Fecha completada --}}
+            <div class="col-md-4">
+                <div class="text-muted mb-1">Fecha de tarea completada</div>
+                <input type="text" class="form-control" disabled value="{{ $fechaFinal ?: '' }}"
+                       readonly style="background:#f1f2f4; border-color:#e3e6ea; color:#5b6570;">
+                @if(!$fechaFinal)
+                    <small class="text-muted">Se completa automáticamente al pasar a un estado final.</small>
+                @endif
+            </div>
 
-                                    <small class="text-muted d-block mt-1">
-                                        Si ingresas horas, se registrará un time log desde ahora hacia atrás.
-                                    </small>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
+            {{-- Total horas (visual) --}}
+            <div class="col-md-4 text-md-center">
+                <div class="fs-3 fw-semibold" style="line-height:1;">
+                    {{ number_format($horasReales, 2) }} <span class="fs-6 fw-normal">horas</span>
+                </div>
+            </div>
 
-
+            {{-- Ayuda + botón guardar --}}
+            <div class="col-md-4 d-flex flex-column align-items-md-end">
+                <button class="btn btn-primary"
+                        style="background-color:#003B7B;border-color:#003B7B;"
+                        type="submit" {{ $disabled }}>
+                    Guardar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
 
                     {{-- Editor de comentarios (Quill se inicializa en resources/js/app.js) --}}
                     <form id="formComentario" method="POST"
@@ -471,9 +474,9 @@
                     Swal.fire({
                         title: `¿Estás seguro de eliminar la tarea “${titulo}”?`,
                         html: `<div style="text-align:left;">
-                                                                                                <p>Esta acción es <b>permanente</b> y <b>no se puede deshacer</b>.</p>
-                                                                                                <hr><p><b>Área:</b> ${area}</p><p><b>Estado:</b> ${estado}</p>
-                                                                                               </div>`,
+                                                                                                                                        <p>Esta acción es <b>permanente</b> y <b>no se puede deshacer</b>.</p>
+                                                                                                                                        <hr><p><b>Área:</b> ${area}</p><p><b>Estado:</b> ${estado}</p>
+                                                                                                                                       </div>`,
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonText: 'Sí, eliminar',

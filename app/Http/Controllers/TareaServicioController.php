@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\Auth;
 use App\Models\ColumnaTableroServicio;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreTareaRequest;
+use App\Notifications\NotificacionAsignacionTarea;
 
 class TareaServicioController extends Controller
 {
@@ -131,6 +132,14 @@ class TareaServicioController extends Controller
         if ($descripcionNueva !== $tarea->descripcion) {
             $tarea->update(['descripcion' => $descripcionNueva]);
         }
+
+                $tarea->loadMissing('area', 'columna.tablero.cliente');
+
+        $user = User::find($validated['usuario_id']);
+        if ($user) {
+            $user->notify(new NotificacionAsignacionTarea($tarea));
+        }
+
 
         return redirect()->route('configuracion.servicios.tableros.show', [
             'cliente'  => $cliente->id,
@@ -459,94 +468,150 @@ public function edit(
 }
 
 public function update(
-    Request $request,
-    Cliente $cliente,
-    Servicio $servicio,
-    TableroServicio $tablero,
-    ColumnaTableroServicio $columna,
-    TareaServicio $tarea
-) {
-    // Validar jerarquía
-    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
-    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
-    abort_unless($tablero->servicio_id === $servicio->id, 404);
-    abort_unless($servicio->cliente_id === $cliente->id, 404);
+        Request $request,
+        Cliente $cliente,
+        Servicio $servicio,
+        TableroServicio $tablero,
+        ColumnaTableroServicio $columna,
+        TareaServicio $tarea
+    ) {
+        abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+        abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+        abort_unless($tablero->servicio_id === $servicio->id, 404);
+        abort_unless($servicio->cliente_id === $cliente->id, 404);
 
-    $areaIdsValidas = $servicio->areaIdsContratadas();
+        $areaIdsValidas = $servicio->areaIdsContratadas();
 
-    $validated = $request->validate([
-        'titulo'            => ['required', 'string', 'max:255'],
-        'estado_id'         => ['required', Rule::exists('estado_tarea', 'id')],
-        'area_id'           => ['required', 'integer', Rule::in($areaIdsValidas->all())],
-        'usuario_id'        => ['required', Rule::exists('users', 'id')],
-        'descripcion'       => ['required', 'string'],
-        'tiempo_estimado_h' => ['required', 'numeric', 'min:0'],
-        // si quieres permitir mantener una fecha pasada ya guardada, quita 'after_or_equal:today'
-        'fecha_de_entrega'  => ['nullable', 'date'],
-    ]);
-
-    // Sanitizar HTML de Quill
-    $validated['descripcion'] = Purifier::clean($validated['descripcion'], [
-        'HTML.Trusted'             => true,
-        'HTML.SafeIframe'          => true,
-        'URI.SafeIframeRegexp'     => '%^(https?:)?//(www\.youtube\.com/embed/|player\.vimeo\.com/video/)%',
-        'HTML.Allowed'             => implode(',', [
-            'p','b','strong','i','em','u','s','strike','blockquote','pre','code',
-            'ul','ol','li',
-            'a[href|target|rel]',
-            'br',
-            'span[style|class]',
-            'div[style|class]',
-            'h1','h2','h3','h4','h5','h6',
-            'img[src|alt|width|height]',
-            'iframe[src|width|height|frameborder|allowfullscreen]',
-        ]),
-        'CSS.AllowedProperties'    => 'color,background-color,text-align,font-weight,font-style,text-decoration,margin-left,margin-right',
-        'Attr.AllowedClasses'      => 'ql-align-center ql-align-right ql-align-justify ql-indent-1 ql-indent-2 ql-indent-3 ql-size-small ql-size-large ql-size-huge',
-        'Attr.AllowedFrameTargets' => ['_blank','_self'],
-        'URI.AllowedSchemes'       => ['http','https','data'],
-        'AutoFormat.AutoParagraph' => true,
-        'AutoFormat.RemoveEmpty'   => true,
-    ]);
-
-    $estadoAnterior = $tarea->estado_id;
-
-    DB::transaction(function () use ($tarea, $validated, $estadoAnterior) {
-        $tarea->update([
-            'estado_id'         => $validated['estado_id'],
-            'area_id'           => $validated['area_id'],
-            'usuario_id'        => $validated['usuario_id'],
-            'titulo'            => $validated['titulo'],
-            'descripcion'       => $validated['descripcion'],
-            'tiempo_estimado_h' => $validated['tiempo_estimado_h'],
-            'fecha_de_entrega'  => $validated['fecha_de_entrega'] ?? null,
+        $validated = $request->validate([
+            'titulo'            => ['required', 'string', 'max:255'],
+            'estado_id'         => ['required', Rule::exists('estado_tarea', 'id')],
+            'area_id'           => ['required', 'integer', Rule::in($areaIdsValidas->all())],
+            'usuario_id'        => ['required', Rule::exists('users', 'id')],
+            'descripcion'       => ['required', 'string'],
+            'tiempo_estimado_h' => ['required', 'numeric', 'min:0'],
+            'fecha_de_entrega'  => ['nullable', 'date'],
         ]);
 
-        if ((int)$estadoAnterior !== (int)$validated['estado_id']) {
-            TareaEstadoHistorial::create([
-                'id'                 => (string) Str::uuid(),
-                'tarea_id'           => $tarea->id,
-                'cambiado_por'       => Auth::id() ?? $validated['usuario_id'],
-                'estado_id_anterior' => $estadoAnterior,
-                'estado_id_nuevo'    => $validated['estado_id'],
-                'observacion'        => 'Cambio de estado en edición',
+        // Sanitizar Quill
+        $validated['descripcion'] = Purifier::clean($validated['descripcion'], [
+            'HTML.Trusted'             => true,
+            'HTML.SafeIframe'          => true,
+            'URI.SafeIframeRegexp'     => '%^(https?:)?//(www\.youtube\.com/embed/|player\.vimeo\.com/video/)%',
+            'HTML.Allowed'             => implode(',', [
+                'p','b','strong','i','em','u','s','strike','blockquote','pre','code',
+                'ul','ol','li',
+                'a[href|target|rel]',
+                'br',
+                'span[style|class]',
+                'div[style|class]',
+                'h1','h2','h3','h4','h5','h6',
+                'img[src|alt|width|height]',
+                'iframe[src|width|height|frameborder|allowfullscreen]',
+            ]),
+            'CSS.AllowedProperties'    => 'color,background-color,text-align,font-weight,font-style,text-decoration,margin-left,margin-right',
+            'Attr.AllowedClasses'      => 'ql-align-center ql-align-right ql-align-justify ql-indent-1 ql-indent-2 ql-indent-3 ql-size-small ql-size-large ql-size-huge',
+            'Attr.AllowedFrameTargets' => ['_blank','_self'],
+            'URI.AllowedSchemes'       => ['http','https','data'],
+            'AutoFormat.AutoParagraph' => true,
+            'AutoFormat.RemoveEmpty'   => true,
+        ]);
+
+        $estadoAnterior = (int) $tarea->estado_id;
+        $nuevoEstado    = (int) $validated['estado_id'];
+        $usuarioAnteriorId = (int) $tarea->usuario_id;
+
+
+        // === SOLO DESDE EDICIÓN ===
+        $solicitaReactivar   = $request->boolean('reactivar'); // viene del checkbox de la vista edit
+        $eraFinal            = !is_null($tarea->finalizada_at);
+        // Si NO quieres reapertura automática por cambio de estado, deja en false:
+        $reaperturaPorEstado = $eraFinal && !in_array($nuevoEstado, EstadoTarea::finalIds(), true);
+
+        DB::transaction(function () use ($tarea, $validated, $estadoAnterior, $nuevoEstado, $solicitaReactivar, $reaperturaPorEstado) {
+            // 1) Actualiza campos base
+            $tarea->update([
+                'estado_id'         => $nuevoEstado,
+                'area_id'           => $validated['area_id'],
+                'usuario_id'        => $validated['usuario_id'],
+                'titulo'            => $validated['titulo'],
+                'descripcion'       => $validated['descripcion'],
+                'tiempo_estimado_h' => $validated['tiempo_estimado_h'],
+                'fecha_de_entrega'  => $validated['fecha_de_entrega'] ?? null,
             ]);
+
+            // 2) Historial si cambió el estado
+            if ($estadoAnterior !== $nuevoEstado) {
+                TareaEstadoHistorial::create([
+                    'id'                 => (string) Str::uuid(),
+                    'tarea_id'           => $tarea->id,
+                    'cambiado_por'       => Auth::id() ?? $validated['usuario_id'],
+                    'estado_id_anterior' => $estadoAnterior,
+                    'estado_id_nuevo'    => $nuevoEstado,
+                    'observacion'        => 'Cambio de estado en edición',
+                ]);
+            }
+
+            // 3) Re-activar SOLO desde edición
+            if ($solicitaReactivar || $reaperturaPorEstado) {
+                $tarea->forceFill([
+                    'finalizada_at'  => null,
+                    'finalizada_por' => null,
+                ])->save();
+
+                TareaEstadoHistorial::create([
+                    'id'                 => (string) Str::uuid(),
+                    'tarea_id'           => $tarea->id,
+                    'cambiado_por'       => Auth::id() ?? $validated['usuario_id'],
+                    'estado_id_anterior' => $estadoAnterior,
+                    'estado_id_nuevo'    => $nuevoEstado,
+                    'observacion'        => 'Reapertura de tarea desde edición',
+                ]);
+            }
+
+            // 4) Si no se reactivó y el nuevo estado es final, sellar finalización
+            if (!$solicitaReactivar && !$reaperturaPorEstado && in_array($nuevoEstado, EstadoTarea::finalIds(), true)) {
+                $tarea->forceFill([
+                    'finalizada_at'  => $tarea->finalizada_at ?: now('UTC'),
+                    'finalizada_por' => $tarea->finalizada_por ?: (Auth::id() ?? $validated['usuario_id']),
+                ])->save();
+            }
+        });
+
+        // Reescritura/recursos
+        $descripcionNueva = $this->syncRecursosDesdeDescripcion($tarea, $request->session()->getId());
+        if ($descripcionNueva !== $tarea->descripcion) {
+            $tarea->update(['descripcion' => $descripcionNueva]);
         }
-    });
 
-    // Reescritura de URLs / guardado de recursos (incluye data: y draft/session)
-    $descripcionNueva = $this->syncRecursosDesdeDescripcion($tarea, $request->session()->getId());
-    if ($descripcionNueva !== $tarea->descripcion) {
-        $tarea->update(['descripcion' => $descripcionNueva]);
+
+
+                $tarea->refresh()->loadMissing('area', 'columna.tablero.cliente');
+
+$nuevoUsuarioId = (int) $tarea->usuario_id;
+if ($nuevoUsuarioId !== $usuarioAnteriorId) {
+    $nuevoUser = User::find($nuevoUsuarioId);
+    if ($nuevoUser) {
+        $nuevoUser->notify(new NotificacionAsignacionTarea($tarea));
     }
-
-    return redirect()->route('configuracion.servicios.tableros.show', [
-        'cliente'  => $cliente->id,
-        'servicio' => $servicio->id,
-        'tablero'  => $tablero->id,
-    ])->with('success', "Tarea «{$tarea->titulo}» actualizada correctamente.");
+    // (Opcional) notificar al anterior que fue desasignado con otra notif
 }
 
+if ($solicitaReactivar || $reaperturaPorEstado) {
+    $asignado = User::find($tarea->usuario_id);
+    if ($asignado) {
+        $asignado->notify(new NotificacionAsignacionTarea($tarea));
+    }
+}
+
+
+        return redirect()->route('configuracion.servicios.tableros.show', [
+            'cliente'  => $cliente->id,
+            'servicio' => $servicio->id,
+            'tablero'  => $tablero->id,
+        ])->with('success', "Tarea «{$tarea->titulo}» actualizada correctamente.");
+
+
+    }
 public function destroy(
     Request $request,
     Cliente $cliente,

@@ -1,66 +1,147 @@
-
-<nav class="navbar navbar-expand-md navbar-light" style="background-color: #003B7B; z-index: 1000; position: sticky; top: 0; height: 60px;  width: 100%;">
+<nav class="navbar navbar-expand-md navbar-light"
+    style="background-color:#003B7B; z-index:1000; position:sticky; top:0; height:60px; width:100%;">
     <div class="container-fluid">
-        <!-- Brand -->
+        {{-- Brand (si lo necesitas)
+        <a class="navbar-brand text-white" href="{{ url('/') }}">Tu App</a>
+        --}}
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent"
+            aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
         <!-- Navbar content -->
         <div class="collapse navbar-collapse" id="navbarContent">
             <!-- Right Side -->
             <ul class="navbar-nav ms-auto pe-5">
-            <!-- Notificaciones -->
-            <div class="user-notification" style="padding-top:12px;">
-                <div class="dropdown">
-                    <a class="dropdown-toggle no-arrow" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="icon-copy dw dw-notification" style="color: #fff"></i>
-                        <span class="icon-notificacion-de-campana-en-redes-sociales-11"></span>
+
+                {{-- ===== Notificaciones ===== --}}
+                @php
+                    $user = Auth::user();
+                    $notifCount = $user?->unreadNotifications()->count() ?? 0;
+                    // Últimas 10 (mezcla leídas/no leídas)
+                    $latestNotifications = $user?->notifications()->latest()->limit(10)->get() ?? collect();
+                @endphp
+
+                <li class="nav-item dropdown" style="padding-top:12px;">
+                    <a class="nav-link dropdown-toggle no-arrow position-relative" href="#" id="notifDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="icon-copy dw dw-notification" style="color:#fff;"></i>
+                        @if($notifCount > 0)
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ $notifCount }}
+                            </span>
+                        @endif
                     </a>
-                    <div class="dropdown-menu dropdown-menu-end mt-3">
-                        <div class="notification-list mx-h-350 customscroll">
+
+                    <div class="dropdown-menu dropdown-menu-end mt-3 p-0" aria-labelledby="notifDropdown"
+                        style="min-width:360px;">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <strong>Notificaciones</strong>
+                            <div class="d-flex gap-2">
+                                <form method="POST" action="{{ route('notificaciones.readAll') }}">
+                                    @csrf
+                                    <button class="btn btn-link btn-sm text-decoration-none">Marcar todas</button>
+                                </form>
+                                <a href="{{ route('notificaciones.index') }}"
+                                    class="btn btn-link btn-sm text-decoration-none">Ver todas</a>
+                            </div>
+                        </div>
+
+                        <div class="notification-list customscroll" style="max-height:360px; overflow:auto;">
                             <ul class="list-unstyled mb-0">
-                                <li class="dropdown-item">Notificaciones</li>
+                                @forelse($latestNotifications as $n)
+                                    @php
+                                        $data = $n->data ?? [];
+                                        $isUnread = is_null($n->read_at);
+                                    @endphp
+                                    <li class="border-bottom">
+                                        <div
+                                            class="dropdown-item d-flex align-items-start gap-2 {{ $isUnread ? 'bg-light' : '' }}">
+                                            <div class="flex-grow-1">
+                                                <div class="d-flex justify-content-between">
+                                                    <strong class="{{ $isUnread ? '' : 'text-muted' }}">
+                                                        {{ $data['tarea'] ?? 'Tarea' }}
+                                                    </strong>
+                                                    <small class="text-muted">{{ $n->created_at->diffForHumans() }}</small>
+                                                </div>
+                                                <div class="small text-muted">
+                                                    {{ $data['cliente'] ?? '' }}
+                                                    @if(!empty($data['fecha']))
+                                                        — vence:
+                                                        {{ \Carbon\Carbon::parse($data['fecha'])->format('d/m/Y H:i') }}
+                                                    @endif
+                                                </div>
+
+                                                <div class="d-flex gap-2 mt-2">
+                                                    <a class="btn btn-sm btn-outline-primary"
+                                                        href="{{ $data['url'] ?? '#' }}">
+                                                        Abrir
+                                                    </a>
+
+                                                    @if($isUnread)
+                                                        <form method="POST" action="{{ route('notificaciones.read', $n->id) }}">
+                                                            @csrf
+                                                            <button class="btn btn-sm btn-outline-secondary">
+                                                                Marcar leída
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                @empty
+                                    <li>
+                                        <div class="dropdown-item text-muted">Sin notificaciones</div>
+                                    </li>
+                                @endforelse
                             </ul>
                         </div>
                     </div>
-                </div>
-            </div>
-            <div class="user-image px-2" style="padding-top:12px;">
-                        @php
-                            $foto = Auth::user()->foto_perfil;
-                        @endphp
-                        @if ($foto)
-                            <img src="{{ asset('storage/' . $foto) }}" alt="Foto de perfil" class="img-perfil-nav rounded-circle">
-                        @else
-                            <img src="{{ asset('images/default-profile.png') }}" alt="Foto por defecto" class="img-perfil-nav rounded-circle">
-                        @endif
-            </div>
-            <div>
-                <!-- Auth Dropdown -->
-                    <li class="nav-item dropdown pt-1">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" id="userDropdown" role="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            {{ Auth::user()->name }} <img src="{{ asset('img/angulo.png') }}" class="px-2 pt-1" alt="logo">
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="userDropdown" style="background-color: #ffff;">
-                            <li>
-                                <a class="dropdown-item  text-black" href="{{ route('profile.edit') }}">{{ __('Perfil') }}</a>
-                            </li>
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
-                            <li>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <a class="dropdown-item  text-black" href="{{ route('logout') }}"
+                </li>
+
+                {{-- ===== Avatar ===== --}}
+                <li class="nav-item user-image px-2" style="padding-top:12px;">
+                    @php $foto = Auth::user()->foto_perfil; @endphp
+                    @if ($foto)
+                        <img src="{{ asset('storage/' . $foto) }}" alt="Foto de perfil"
+                            class="img-perfil-nav rounded-circle">
+                    @else
+                        <img src="{{ asset('images/default-profile.png') }}" alt="Foto por defecto"
+                            class="img-perfil-nav rounded-circle">
+                    @endif
+                </li>
+
+                {{-- ===== Usuario / Perfil / Logout ===== --}}
+                <li class="nav-item dropdown pt-1">
+                    <a class="nav-link dropdown-toggle d-flex align-items-center text-white" href="#" id="userDropdown"
+                        role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        {{ Auth::user()->name }}
+                        <img src="{{ asset('img/angulo.png') }}" class="px-2 pt-1" alt="logo">
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end mt-2" aria-labelledby="userDropdown"
+                        style="background-color:#fff;">
+                        <li>
+                            <a class="dropdown-item text-black"
+                                href="{{ route('profile.edit') }}">{{ __('Perfil') }}</a>
+                        </li>
+                        <li>
+                            <hr class="dropdown-divider">
+                        </li>
+                        <li>
+                            <form method="POST" action="{{ route('logout') }}">
+                                @csrf
+                                <a class="dropdown-item text-black" href="{{ route('logout') }}"
                                     onclick="event.preventDefault(); this.closest('form').submit();">
-                                        {{ __('Cerrar sesión') }}
-                                    </a>
-                                </form>
-                            </li>
-                        </ul>
-                    </li>
-                </div>
+                                    {{ __('Cerrar sesión') }}
+                                </a>
+                            </form>
+                        </li>
+                    </ul>
+                </li>
+
             </ul>
         </div>
     </div>
 </nav>
-
-
