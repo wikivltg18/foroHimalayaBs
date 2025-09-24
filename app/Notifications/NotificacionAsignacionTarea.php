@@ -23,6 +23,7 @@ class NotificacionAsignacionTarea extends Notification implements ShouldQueue
     {
         $tablero = $this->tarea->columna->tablero ?? null;
         return [
+            'tipo' => 'tarea_asignada',
             'cliente' => $tablero->nombre_cliente ?? optional($tablero->cliente)->nombre,
             'tarea'   => $this->tarea->titulo,
             'fecha'   => optional($this->tarea->fecha_de_entrega)?->toDateTimeString(),
@@ -30,6 +31,7 @@ class NotificacionAsignacionTarea extends Notification implements ShouldQueue
             'url'     => route('configuracion.servicios.tableros.show', [
                 'cliente' => $tablero->cliente_id ?? '',
                 'servicio' => $tablero->servicio_id ?? '',
+                
                 'tablero' => $tablero->id ?? ''
             ]),
         ];

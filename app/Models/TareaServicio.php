@@ -77,6 +77,16 @@ class TareaServicio extends Model
         return $this->hasMany(TareaTimeLog::class, 'tarea_id')->latest('started_at');
     }
 
+    public function historialesCompletos()
+{
+    return $this->hasMany(TareaEstadoHistorial::class, 'tarea_id');
+}
+
+public function creadorUser() // retorna User|null
+{
+    $first = $this->historialesCompletos()->oldest('created_at')->first();
+    return $first?->autor; // asumiendo relación 'autor' en TareaEstadoHistorial->belongsTo(User::class,'cambiado_por')
+}
     // Scopes
     public function scopeActivas($q)     { return $q->whereNull('finalizada_at')->where('archivada', false); }
     public function scopeFinalizadas($q) { return $q->whereNotNull('finalizada_at'); }

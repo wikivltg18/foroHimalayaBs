@@ -23,6 +23,7 @@ use App\Models\ColumnaTableroServicio;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreTareaRequest;
 use App\Notifications\NotificacionAsignacionTarea;
+use App\Notifications\NotificacionTareaFinalizada;
 
 class TareaServicioController extends Controller
 {
@@ -660,9 +661,6 @@ public function destroy(
     ])->with('success', "Tarea «{$tarea->titulo}» eliminada correctamente.");
 }
 
-
-
-
 public function updateEstadoTiempo(
     Request $request,
     Cliente $cliente,
@@ -688,7 +686,14 @@ public function updateEstadoTiempo(
     $duracionRealH = (float) ($validated['duracion_real_h'] ?? 0);
     $notaTiempo    = $validated['nota_tiempo'] ?? null;
 
-    DB::transaction(function () use ($tarea, $nuevoEstadoId, $duracionRealH, $notaTiempo) {
+    // Señales para notificar tras el commit
+    $dispararNotifFinalizacion = false;
+    $finalizadaPorId = null;
+
+    DB::transaction(function () use (
+        $tarea, $nuevoEstadoId, $duracionRealH, $notaTiempo,
+        &$dispararNotifFinalizacion, &$finalizadaPorId
+    ) {
         $ahoraUtc         = now('UTC');
         $userId           = auth()->id();
         $estadoAnterior   = (int) $tarea->estado_id;
@@ -723,21 +728,55 @@ public function updateEstadoTiempo(
             ]);
         }
 
-        // Marcar finalización
+        // Marcar finalización / reapertura
         $esFinal = in_array($nuevoEstadoId, EstadoTarea::finalIds(), true);
 
         if ($esFinal) {
+            // ¿Es la PRIMERA vez que queda finalizada?
+            $primeraVez = is_null($tarea->finalizada_at);
+
             $tarea->forceFill([
                 'finalizada_at'  => $tarea->finalizada_at ?: $ahoraUtc,
                 'finalizada_por' => $tarea->finalizada_por ?: $userId,
             ])->save();
+
+            if ($primeraVez) {
+                // señal para notificar después del commit
+                $dispararNotifFinalizacion = true;
+                $finalizadaPorId = $userId;
+            }
         } elseif ($veniaFinalizada) {
+            // Reapertura: limpiar sellos de finalización
             $tarea->forceFill([
                 'finalizada_at'  => null,
                 'finalizada_por' => null,
             ])->save();
         }
     });
+
+    // ===== Notificación post-commit (no rompe la transacción) =====
+    if ($dispararNotifFinalizacion) {
+        try {
+            // Resolver creador desde el primer historial (autor de la creación)
+            $creador = $tarea->historialesCompletos()
+                ->oldest('created_at')
+                ->with('autor:id,name,email') // relación en TareaEstadoHistorial
+                ->first()?->autor;
+
+            if ($creador && (int)$creador->id !== (int)$finalizadaPorId) { // no auto-notificar
+                // Cargar datos para el mail/database
+                $tarea->loadMissing('area', 'columna.tablero.cliente');
+
+                $creador->notify(new NotificacionTareaFinalizada($tarea, $finalizadaPorId));
+            }
+        } catch (\Throwable $e) {
+            // Evitar que un fallo de notificación rompa la UX
+            \Log::warning('[Notif] Falló notificar finalización', [
+                'tarea_id' => $tarea->id,
+                'error'    => $e->getMessage(),
+            ]);
+        }
+    }
 
     return back()->with('success', 'Estado y tiempos actualizados correctamente.');
 }
