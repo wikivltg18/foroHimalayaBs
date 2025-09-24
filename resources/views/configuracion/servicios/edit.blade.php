@@ -116,21 +116,6 @@
             </div>
           </template>
 
-          <style>
-            .sortable-ghost {
-              opacity: 0.4;
-              background-color: #c8e9ff !important;
-            }
-
-            .sortable-chosen {
-              background-color: #b3e0ff !important;
-            }
-
-            .sortable-drag {
-              cursor: grabbing !important;
-            }
-          </style>
-
           {{-- Botones --}}
           <div class="d-flex gap-2 mb-4">
             <button type="submit" class="btn btn-success w-100">Guardar</button>
@@ -147,12 +132,8 @@
     </div>
   </x-slot>
 
-  {{-- Font Awesome --}}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-
   @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script>
       $(function () {
         $.ajaxSetup({
@@ -435,7 +416,7 @@
           })));
           obtenerFases(); // Para inicializar el campo oculto
         @else
-                                                                                                                                                                                                                                                                        if (ctx.tipoInicial) {
+                                                                                                                                                                                                                                                                                            if (ctx.tipoInicial) {
             // El select ya viene lleno desde el servidor y con el actual seleccionado.
             const nombre = $tipo.find('option:selected').text();
             cargarFasesPorTipo(ctx.tipoInicial, nombre);
@@ -446,7 +427,7 @@
             $tituloPreview.text('Selecciona modalidad y tipo para ver fases.');
           }
         @endif
-                                                                                                                                          });
+                                                                                                                                                  });
     </script>
   @endpush
 </x-app-layout>

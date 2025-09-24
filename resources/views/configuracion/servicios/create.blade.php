@@ -64,7 +64,7 @@
               <label class="form-label fw-bold" for="tipo_servicio" style="color: #003B7B;">Tipo de servicio <span
                   class="text-danger">*</span></label>
               <select id="tipo_servicio" name="tipo_servicio_id" class="form-select" required>
-                <option value="" disabled selected>Seleccione un tipo de servicio</option>
+                <option value="none" disabled selected>Seleccione un tipo de servicio</option>
                 @foreach($tipos as $t)
                   <option value="{{ $t->id }}" @selected((string) $t->id === (string) $selectedTipoId)>{{ $t->nombre }}
                   </option>
@@ -143,14 +143,9 @@
     </div>
   </x-slot>
 
-  {{-- Font Awesome --}}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  {{-- SweetAlert2 --}}
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
   @push('scripts')
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <script>
       $(function () {
         $.ajaxSetup({
@@ -207,7 +202,7 @@
           $container.empty();
 
           if (!list.length) {
-            $container.append('<div class="text-muted">Este tipo no tiene fases configuradas.</div>');
+            $container.append('<div class="text-danger text-center">Este tipo no tiene fases configuradas.</div>');
             return;
           }
 

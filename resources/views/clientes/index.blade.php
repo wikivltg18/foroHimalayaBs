@@ -77,8 +77,7 @@
                                     <td>
                                         @forelse ($cliente->tiposContrato as $contrato)
                                             @if ($contrato->id === 1)
-                                                <a class="btn btn-dark mb-1"
-                                                    href="{{ route('config.equipo.index', $cliente->id) }}">{{ $contrato->nombre }}</a>
+                                                <a class="btn btn-dark mb-1" href="#">{{ $contrato->nombre }}</a>
                                             @elseif ($contrato->id === 2)
                                                 <a class="btn btn-secondary mb-1"
                                                     href="{{ route('config.servicios.index', $cliente->id) }}">{{ $contrato->nombre }}</a>
@@ -160,7 +159,7 @@
                         confirmButtonText: 'Ok'
                     });
                 @endif
-                        });
+                                });
 
 
             // Función para limpiar el formulario de filtro
