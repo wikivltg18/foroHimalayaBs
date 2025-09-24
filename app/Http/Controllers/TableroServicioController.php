@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cliente;
 use App\Models\Servicio;
+use App\Models\EstadoTarea;
 use Illuminate\Http\Request;
 use App\Models\TableroServicio;
 use Illuminate\Support\Facades\DB;
@@ -28,19 +29,28 @@ class TableroServicioController extends Controller
                 'servicio.modalidad',
             ])
             ->orderByDesc('created_at')
-            ->paginate(20);
+            ->paginate(5);
 
         return view('configuracion.servicios.tableros.index', compact('cliente', 'tableros'));
     }
 
-    public function show(Cliente $cliente, Servicio $servicio, TableroServicio $tablero)
+public function show(Cliente $cliente, Servicio $servicio, TableroServicio $tablero)
     {
-        // Cargamos columnas ordenadas y estado
         $tablero->load([
             'estado',
-            'columnas' => fn($q) => $q->orderBy('posicion'),
+            'columnas' => fn($q) => $q->orderBy('posicion')->with(['tareas.estado']),
             'servicio.tipo',
             'servicio.modalidad',
+        ]);
+
+        $finalIds = EstadoTarea::finalIds(); // <-- ya funciona
+
+        $tablero->loadCount([
+            'tareas',
+            'tareas as pendientes_count' => fn($q) => $q->where(function ($qq) use ($finalIds) {
+                $qq->whereNull('estado_id')->orWhereNotIn('estado_id', $finalIds);
+            }),
+            'tareas as completas_count'  => fn($q) => $q->whereIn('estado_id', $finalIds),
         ]);
 
         return view('configuracion.servicios.tableros.show', compact('cliente', 'servicio', 'tablero'));
@@ -173,7 +183,7 @@ class TableroServicioController extends Controller
     public function listaTableros(Request $request)
     {
         $q        = trim($request->get('q', ''));
-        $perPage  = (int) $request->get('per_page', 10);
+        $perPage  = (int) $request->get('per_page', 5);
         $sort     = $request->get('sort', 'created_at');   // cliente | servicio | modalidad | tipo | estado | created_at
         $dir      = $request->get('dir', 'desc') === 'asc' ? 'asc' : 'desc';
 

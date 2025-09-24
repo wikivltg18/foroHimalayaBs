@@ -121,11 +121,9 @@
                 </div>
         @endforeach
 
-        @if($tableros->hasPages())
-            <div>
-                {{ $tableros->links() }}
-            </div>
-        @endif
+        <div class="d-flex justify-content-end mt-3">
+            {{ $tableros->links('pagination::bootstrap-4') }}
+        </div>
 
     </x-slot>
 
@@ -190,7 +188,7 @@
                         confirmButtonText: 'Entendido'
                     });
                 @endif
-                        })();
+                                })();
         </script>
     @endpush
 

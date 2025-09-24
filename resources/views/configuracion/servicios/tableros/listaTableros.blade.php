@@ -17,7 +17,7 @@
             </div>
             <div class="col-sm-3 col-md-2">
                 <select name="per_page" class="form-select" onchange="this.form.submit()">
-                    @foreach([10, 25, 50, 100] as $n)
+                    @foreach([5, 10, 25, 50, 100] as $n)
                         <option value="{{ $n }}" @selected($perPage == $n)>Mostrar {{ $n }}</option>
                     @endforeach
                 </select>

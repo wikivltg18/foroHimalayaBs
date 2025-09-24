@@ -30,6 +30,7 @@
         // Asegurarse de que CSRF token esté disponible para Ajax
         window.csrfToken = '{{ csrf_token() }}';
     </script>
+    @stack('styles')
 </head>
 
 <body>

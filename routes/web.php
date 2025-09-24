@@ -20,6 +20,7 @@ use App\Http\Controllers\TareaServicioController;
 use App\Http\Controllers\TableroServicioController;
 use App\Http\Controllers\TareaComentarioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
+use App\Http\Controllers\EstadoTableroServicioController;
 use App\Http\Controllers\FasesServicioInstanciaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Configuracion\ServiciosConfigController;
@@ -387,6 +388,13 @@ Route::middleware('auth')->group(function () {
         auth()->user()->unreadNotifications->markAsRead();
         return back();
     })->name('notificaciones.readAll');
+
+Route::patch(
+    '/configuracion/servicios/tableros/{tablero}/estado',
+    [EstadoTableroServicioController::class, 'update']
+)->middleware('can:update,tablero')   // ⬅️ Policy aplicada aquí
+ ->name('tableros.estado.update');
+
 });
     
 require __DIR__ . '/auth.php';
