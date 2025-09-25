@@ -277,7 +277,7 @@
         {{-- Fila superior: Estado / Tiempo real usado / Nota --}}
         <div class="row g-3 align-items-end">
             {{-- Estado --}}
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Actualizar estado / tiempo</label>
                 <select name="estado_id" class="form-select" {{ $finalizada ? 'disabled' : '' }}>
                     @foreach ($estados as $estado)
@@ -293,7 +293,7 @@
             </div>
 
             {{-- Tiempo real usado (input) --}}
-            <div class="col-md-4">
+            <div class="col-md-6">
                 <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Tiempo real usado</label>
                 <div class="input-group">
                     <input type="number" name="duracion_real_h" min="0" step="0.25"
@@ -302,12 +302,12 @@
                 </div>
             </div>
 
-            {{-- Nota --}}
+            {{--Nota 
             <div class="col-md-4">
                 <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Nota (opcional)</label>
                 <input type="text" name="nota_tiempo" maxlength="500" class="form-control"
                        placeholder="" {{ $disabled }}>
-            </div>
+            </div>--}}
         </div>
 
         @if($finalizada)
@@ -332,6 +332,7 @@
 
             {{-- Total horas (visual) --}}
             <div class="col-md-4 text-md-center">
+                <p>Horas dedicadas</p>
                 <div class="fs-3 fw-semibold" style="line-height:1;">
                     {{ number_format($horasReales, 2) }} <span class="fs-6 fw-normal">horas</span>
                 </div>
@@ -429,7 +430,7 @@
                                         <small class="text-muted">•
                                             {{ optional($c->created_at)->format('d M Y, H:i') }}</small>
 
-                                        @if(auth()->check() && ($puedeBorrarComentarios || (int) $c->usuario_id === (int) auth()->id()))
+                                        {{--@if(auth()->check() && ($puedeBorrarComentarios || (int) $c->usuario_id === (int) auth()->id()))
                                             <form method="POST"
                                                 action="{{ route('tareas.comentarios.destroy', [$tarea->id, $c->id]) }}"
                                                 class="ms-auto form-eliminar-comentario"
@@ -439,11 +440,10 @@
                                                 <button type="submit" class="btn btn-sm btn-outline-danger">Eliminar</button>
                                             </form>
                                         @endif
-                                    </div>
-
+                                    </div>--}}
+                                </div>
                                     {{-- Contenido del comentario (HTML sanitizado en servidor) --}}
                                     <div class="quill-content mt-2">{!! $c->comentario !!}</div>
-                                </div>
                             </div>
                         @empty
                             <div class="text-muted">Aún no hay comentarios. ¡Sé el primero en comentar!</div>

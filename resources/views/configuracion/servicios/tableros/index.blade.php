@@ -56,7 +56,15 @@
                     <div class="px-3 pt-3">
                         <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between mb-3">
                             <div>
-                                <h5 class="fw-bold mb-1">Nombre del servicio: {{ $nombreServicio }}</h5>
+                                <div class="d-flex">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                                        class="bi bi-grid-1x2-fill" viewBox="0 0 16 16">
+                                        <path
+                                            d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z" />
+                                    </svg>
+                                    <span class="fw-bold  px-1">Tablero {{ $t->nombre_del_tablero }}</span>
+                                </div>
+                                <p class="mb-1">Nombre del servicio: {{ $nombreServicio }}</p>
                                 <p class="mb-1 text-muted">
                                     <span class="fw-semibold">Tipo del servicio:</span> {{ $tipoServicio }}
                                 </p>
@@ -74,14 +82,7 @@
                                         {{ $estadoNombre }}
                                     </span>
 
-                                    <div class="d-flex">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                            class="bi bi-grid-1x2-fill" viewBox="0 0 16 16">
-                                            <path
-                                                d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z" />
-                                        </svg>
-                                        <span class="px-1">Tablero {{ $t->nombre_del_tablero }}</span>
-                                    </div>
+
                                 </div>
                             </div>
 
@@ -188,7 +189,7 @@
                         confirmButtonText: 'Entendido'
                     });
                 @endif
-                                })();
+                                            })();
         </script>
     @endpush
 
