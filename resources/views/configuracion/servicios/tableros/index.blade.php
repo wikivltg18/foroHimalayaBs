@@ -46,7 +46,7 @@
                     $tipoServicio = $t->nombre_tipo_de_servicio
                         ?? optional($t->servicio->tipo_servicio)->nombre
                         ?? 'Tipo de servicio';
-                    $fechaCreacion = optional($t->created_at)?->format('d - M - Y');
+                    $fechaCreacion = dtz($t->created_at, 'd/m/Y H:i');
 
                     $estadoNombre = $t->estado->nombre ?? '—';
                 @endphp
@@ -62,7 +62,7 @@
                                         <path
                                             d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z" />
                                     </svg>
-                                    <span class="fw-bold  px-1">Tablero {{ $t->nombre_del_tablero }}</span>
+                                    <span class="fw-bold px-1">Tablero {{ $t->nombre_del_tablero }}</span>
                                 </div>
                                 <p class="mb-1">Nombre del servicio: {{ $nombreServicio }}</p>
                                 <p class="mb-1 text-muted">
@@ -189,7 +189,7 @@
                         confirmButtonText: 'Entendido'
                     });
                 @endif
-                                            })();
+                                                                })();
         </script>
     @endpush
 

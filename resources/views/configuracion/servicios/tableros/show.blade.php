@@ -137,7 +137,7 @@
                                 <p class="service-subtle mb-0 d-flex d-md-block align-items-center gap-2">
                                     <span>
                                         <span class="fw-bold">Creado:</span>
-                                        {{ optional($tablero->created_at)?->format('d/m/Y H:i') }}
+                                        {{ dtz($tablero->created_at, 'd/m/Y H:i') }}
                                     </span>
                                 </p>
                             </div>
@@ -287,7 +287,7 @@
             (function () {
                 function fireCreatedSuccess(message) {
                     Swal.fire({
-                        title: '¡Tablero creado!',
+                        title: '¡Listo!',
                         text: message || 'Se creó correctamente.',
                         icon: 'success',
                         confirmButtonText: 'Ok'

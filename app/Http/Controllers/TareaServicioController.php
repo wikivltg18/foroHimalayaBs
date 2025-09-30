@@ -14,6 +14,7 @@ use App\Models\TareaTimeLog;
 use Illuminate\Http\Request;
 use App\Models\TareaServicio;
 use App\Models\TableroServicio;
+use App\Models\TareaComentario;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 use Mews\Purifier\Facades\Purifier;
@@ -23,6 +24,7 @@ use App\Models\ColumnaTableroServicio;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Requests\StoreTareaRequest;
 use App\Notifications\NotificacionAsignacionTarea;
+use App\Notifications\NotificacionComentarioTarea;
 use App\Notifications\NotificacionTareaFinalizada;
 
 class TareaServicioController extends Controller
@@ -572,7 +574,7 @@ public function update(
             // 4) Si no se reactivó y el nuevo estado es final, sellar finalización
             if (!$solicitaReactivar && !$reaperturaPorEstado && in_array($nuevoEstado, EstadoTarea::finalIds(), true)) {
                 $tarea->forceFill([
-                    'finalizada_at'  => $tarea->finalizada_at ?: now('UTC'),
+                    'finalizada_at'  => $tarea->finalizada_at ?: now(),
                     'finalizada_por' => $tarea->finalizada_por ?: (Auth::id() ?? $validated['usuario_id']),
                 ])->save();
             }
@@ -662,123 +664,241 @@ public function destroy(
 }
 
 public function updateEstadoTiempo(
-    Request $request,
-    Cliente $cliente,
-    Servicio $servicio,
-    TableroServicio $tablero,
-    ColumnaTableroServicio $columna,
-    TareaServicio $tarea
-) {
-    // Validación jerárquica
-    abort_unless(optional($tarea->columna)->id === $columna->id, 404);
-    abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
-    abort_unless($tablero->servicio_id === $servicio->id, 404);
-    abort_unless($servicio->cliente_id === $cliente->id, 404);
-
-    // Validación de inputs
-    $validated = $request->validate([
-        'estado_id'       => ['required', Rule::exists('estado_tarea', 'id')],
-        'duracion_real_h' => ['nullable', 'numeric', 'min:0', 'max:10000'],
-        'nota_tiempo'     => ['nullable', 'string', 'max:500'],
-    ]);
-
-    $nuevoEstadoId = (int) $validated['estado_id'];
-    $duracionRealH = (float) ($validated['duracion_real_h'] ?? 0);
-    $notaTiempo    = $validated['nota_tiempo'] ?? null;
-
-    // Señales para notificar tras el commit
-    $dispararNotifFinalizacion = false;
-    $finalizadaPorId = null;
-
-    DB::transaction(function () use (
-        $tarea, $nuevoEstadoId, $duracionRealH, $notaTiempo,
-        &$dispararNotifFinalizacion, &$finalizadaPorId
+        Request $request,
+        Cliente $cliente,
+        Servicio $servicio,
+        TableroServicio $tablero,
+        ColumnaTableroServicio $columna,
+        TareaServicio $tarea
     ) {
-        $ahoraUtc         = now('UTC');
-        $userId           = auth()->id();
-        $estadoAnterior   = (int) $tarea->estado_id;
-        $veniaFinalizada  = !is_null($tarea->finalizada_at);
+        // Validación jerárquica
+        abort_unless(optional($tarea->columna)->id === $columna->id, 404);
+        abort_unless(optional($columna->tablero)->id === $tablero->id, 404);
+        abort_unless($tablero->servicio_id === $servicio->id, 404);
+        abort_unless($servicio->cliente_id === $cliente->id, 404);
 
-        // Registrar time log
-        if ($duracionRealH > 0 || ($notaTiempo !== null && trim($notaTiempo) !== '')) {
-            $segundos = (int) round(max($duracionRealH, 0) * 3600);
-            $started  = (clone $ahoraUtc)->subSeconds($segundos);
+        // Validación de inputs
+        $validated = $request->validate([
+            'estado_id'        => ['required', Rule::exists('estado_tarea', 'id')],
+            'duracion_real_h'  => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'comentario_html'  => ['nullable', 'string'],
+        ]);
 
-            TareaTimeLog::create([
-                'id'         => (string) Str::uuid(),
-                'tarea_id'   => $tarea->id,
-                'usuario_id' => $userId,
-                'started_at' => $started,
-                'ended_at'   => $ahoraUtc,
-                'duracion_h' => max($duracionRealH, 0),
-                'nota'       => $notaTiempo,
-            ]);
+        $nuevoEstadoId = (int) $validated['estado_id'];
+        $duracionRealH = (float) ($validated['duracion_real_h'] ?? 0);
+        $comentarioRaw = (string) ($validated['comentario_html'] ?? '');
+
+        // Normaliza comentario (HTML -> texto significativo)
+        $comentarioPlano = trim(
+            preg_replace('/\s+/u', ' ',
+                strip_tags(
+                    str_ireplace(['<p><br></p>', '&nbsp;'], '', $comentarioRaw)
+                )
+            )
+        );
+        $hasComment = $comentarioPlano !== '';
+
+        // Reglas de negocio:
+        // Comentario SIEMPRE requerido.
+        // - Si estado actual es Programada/Pendiente: comentario + (cambio de estado) Y (horas > 0)
+        // - En otros estados: comentario + (cambio de estado O horas > 0)
+        $estadoActualId   = (int) $tarea->estado_id;
+        $estadoActualName = mb_strtolower((string) optional($tarea->estado)->nombre);
+        $isProgramada     = in_array($estadoActualName, ['programada','pendiente'], true);
+        $estadoCambia     = $estadoActualId !== $nuevoEstadoId;
+        $horasOk          = $duracionRealH > 0;
+
+        if (!$hasComment) {
+            return back()->with('comment_error', 'Debes escribir un comentario para guardar la actualización.')->withInput();
         }
 
-        // Cambio de estado
-        if ($estadoAnterior !== $nuevoEstadoId) {
-            $tarea->forceFill(['estado_id' => $nuevoEstadoId])->save();
-
-            TareaEstadoHistorial::create([
-                'id'                 => (string) Str::uuid(),
-                'tarea_id'           => $tarea->id,
-                'cambiado_por'       => $userId,
-                'estado_id_anterior' => $estadoAnterior,
-                'estado_id_nuevo'    => $nuevoEstadoId,
-            ]);
-        }
-
-        // Marcar finalización / reapertura
-        $esFinal = in_array($nuevoEstadoId, EstadoTarea::finalIds(), true);
-
-        if ($esFinal) {
-            // ¿Es la PRIMERA vez que queda finalizada?
-            $primeraVez = is_null($tarea->finalizada_at);
-
-            $tarea->forceFill([
-                'finalizada_at'  => $tarea->finalizada_at ?: $ahoraUtc,
-                'finalizada_por' => $tarea->finalizada_por ?: $userId,
-            ])->save();
-
-            if ($primeraVez) {
-                // señal para notificar después del commit
-                $dispararNotifFinalizacion = true;
-                $finalizadaPorId = $userId;
+        if ($isProgramada) {
+            if (!($estadoCambia && $horasOk)) {
+                return back()->with('comment_error', 'La tarea está en "Programada". Debes cambiar el estado y asignar horas (> 0 h), además del comentario.')->withInput();
             }
-        } elseif ($veniaFinalizada) {
-            // Reapertura: limpiar sellos de finalización
-            $tarea->forceFill([
-                'finalizada_at'  => null,
-                'finalizada_por' => null,
-            ])->save();
+        } else {
+            if (!($estadoCambia || $horasOk)) {
+                return back()->with('comment_error', 'Debes cambiar el estado o asignar horas (> 0 h), además del comentario.')->withInput();
+            }
         }
-    });
 
-    // ===== Notificación post-commit (no rompe la transacción) =====
-    if ($dispararNotifFinalizacion) {
+        // Sanitiza HTML básico del comentario
+        $comentarioLimpio = $this->sanitizeHtmlBasic($comentarioRaw);
+
+        // Señales para notificación post-commit
+        $dispararNotifFinalizacion = false;
+        $finalizadaPorId           = null;
+        $comentarioIdCreado        = null;
+
+        DB::transaction(function () use (
+            $tarea, $nuevoEstadoId, $duracionRealH, $comentarioLimpio,
+            &$dispararNotifFinalizacion, &$finalizadaPorId, &$comentarioIdCreado
+        ) {
+            $ahoraUtc         = now('UTC');
+            $userId           = auth()->id();
+            $estadoAnterior   = (int) $tarea->estado_id;
+            $veniaFinalizada  = !is_null($tarea->finalizada_at);
+
+            // 1) Registrar time log si corresponde
+            if ($duracionRealH > 0) {
+                $segundos = (int) round($duracionRealH * 3600);
+                $started  = (clone $ahoraUtc)->subSeconds($segundos);
+
+                TareaTimeLog::create([
+                    'id'         => (string) Str::uuid(),
+                    'tarea_id'   => $tarea->id,
+                    'usuario_id' => $userId,
+                    'started_at' => $started,
+                    'ended_at'   => $ahoraUtc,
+                    'duracion_h' => $duracionRealH,
+                    'nota'       => null,
+                ]);
+            }
+
+            // 2) Cambio de estado
+            if ($estadoAnterior !== $nuevoEstadoId) {
+                $tarea->forceFill(['estado_id' => $nuevoEstadoId])->save();
+
+                TareaEstadoHistorial::create([
+                    'id'                 => (string) Str::uuid(),
+                    'tarea_id'           => $tarea->id,
+                    'cambiado_por'       => $userId,
+                    'estado_id_anterior' => $estadoAnterior,
+                    'estado_id_nuevo'    => $nuevoEstadoId,
+                ]);
+            }
+
+            // 3) Finalización / Reapertura
+            $esFinal = in_array($nuevoEstadoId, EstadoTarea::finalIds(), true);
+
+            if ($esFinal) {
+                $primeraVez = is_null($tarea->finalizada_at);
+
+                $tarea->forceFill([
+                    'finalizada_at'  => $tarea->finalizada_at ?: $ahoraUtc,
+                    'finalizada_por' => $tarea->finalizada_por ?: $userId,
+                ])->save();
+
+                if ($primeraVez) {
+                    $dispararNotifFinalizacion = true;
+                    $finalizadaPorId = $userId;
+                }
+            } elseif ($veniaFinalizada) {
+                $tarea->forceFill([
+                    'finalizada_at'  => null,
+                    'finalizada_por' => null,
+                ])->save();
+            }
+
+            // 4) Crear comentario (siempre obligatorio por las reglas)
+            $comentario = TareaComentario::create([
+                'id'         => (string) Str::uuid(),
+                'tarea_id'   => $tarea->getKey(),
+                'usuario_id' => $userId,
+                'comentario' => $comentarioLimpio,
+            ]);
+
+            $comentarioIdCreado = $comentario->id;
+        });
+
+        // ================== NOTIFICACIONES (post-commit) ==================
         try {
-            // Resolver creador desde el primer historial (autor de la creación)
-            $creador = $tarea->historialesCompletos()
-                ->oldest('created_at')
-                ->with('autor:id,name,email') // relación en TareaEstadoHistorial
-                ->first()?->autor;
+            $actorId = (int) (auth()->id() ?? 0);
 
-            if ($creador && (int)$creador->id !== (int)$finalizadaPorId) { // no auto-notificar
-                // Cargar datos para el mail/database
-                $tarea->loadMissing('area', 'columna.tablero.cliente');
+            // Cargar lo necesario para las notificaciones
+            $tarea->loadMissing('area', 'columna.tablero.cliente', 'historiales.autor', 'usuarios', 'estado');
 
-                $creador->notify(new NotificacionTareaFinalizada($tarea, $finalizadaPorId));
+            // --- A) Notificación por FINALIZACIÓN (solo si se finalizó por primera vez y no al propio actor) ---
+            if ($dispararNotifFinalizacion) {
+                // creador = primer autor de historiales
+                $creador = $tarea->historiales
+                    ->sortBy('created_at')
+                    ->first()?->autor; // User|null
+
+                if ($creador && (int) $creador->id !== (int) $finalizadaPorId) {
+                    $creador->notify(new NotificacionTareaFinalizada($tarea, $finalizadaPorId));
+                }
+            }
+
+            // --- B) Notificación por COMENTARIO/ACTUALIZACIÓN ---
+            // Resumen plano del comentario (limpio y corto)
+            $comentarioResumen = \Illuminate\Support\Str::of(
+                trim(preg_replace('/\s+/u', ' ', strip_tags($comentarioRaw)))
+            )->squish()->limit(180, '…');
+
+            // Construir lista de destinatarios:
+            $destinatarios = collect();
+
+            // 1) Asignado principal
+            if ($tarea->usuario_id) {
+                if ($u = User::find($tarea->usuario_id)) {
+                    $destinatarios->push($u);
+                }
+            }
+
+            // 2) Creador desde historiales (si existe)
+            $creador = $tarea->historiales->sortBy('created_at')->first()?->autor;
+            if ($creador) {
+                $destinatarios->push($creador);
+            }
+
+            // 3) Asignados adicionales (si hay muchos-usuarios)
+            if ($tarea->relationLoaded('usuarios')) {
+                $destinatarios = $destinatarios->merge($tarea->usuarios);
+            } else {
+                // Si no estaba cargada, podrías traerlos: $destinatarios = $destinatarios->merge($tarea->usuarios()->get());
+            }
+
+            // Limpiar duplicados/nulos y no auto-notificar al actor
+            $destinatarios = $destinatarios
+                ->filter()
+                ->unique('id')
+                ->reject(fn ($u) => (int) $u->id === $actorId);
+
+            foreach ($destinatarios as $user) {
+                $user->notify(new NotificacionComentarioTarea($tarea, (string) $comentarioResumen, $actorId));
             }
         } catch (\Throwable $e) {
-            // Evitar que un fallo de notificación rompa la UX
-            \Log::warning('[Notif] Falló notificar finalización', [
-                'tarea_id' => $tarea->id,
-                'error'    => $e->getMessage(),
+            \Log::warning('[Notif] Falló notificar actualización de tarea', [
+                'tarea_id'  => $tarea->id,
+                'actor_id'  => auth()->id(),
+                'error'     => $e->getMessage(),
             ]);
         }
+
+        return back()->with('success', 'Actualización guardada correctamente.');
     }
 
-    return back()->with('success', 'Estado y tiempos actualizados correctamente.');
-}
+    private function sanitizeHtmlBasic(string $html): string
+    {
+        $allowed = '<p><br><strong><b><em><i><u><s><span><blockquote><pre><code>'
+                 . '<ul><ol><li><a><img><h1><h2><h3><h4><h5><h6><div>';
+
+        $clean = strip_tags($html, $allowed);
+
+        // elimina on* handlers
+        $clean = preg_replace('/\son\w+="[^"]*"/i', '', $clean);
+        $clean = preg_replace("/\son\w+='[^']*'/i", '', $clean);
+
+        // <a> seguro
+        $clean = preg_replace_callback('/<a\s+[^>]*href=("|\')(.*?)\1[^>]*>/i', function($m) {
+            $href = $m[2];
+            if (!preg_match('#^(https?:|mailto:)#i', $href)) {
+                $href = '#';
+            }
+            return '<a href="'.$href.'" target="_blank" rel="noopener nofollow">';
+        }, $clean);
+
+        // <img> seguro
+        $clean = preg_replace_callback('/<img\s+[^>]*src=("|\')(.*?)\1[^>]*>/i', function($m) {
+            $src = $m[2];
+            if (!preg_match('#^(https?:|/storage/)#i', $src)) {
+                return ''; // descarta
+            }
+            return '<img src="'.$src.'" alt="">';
+        }, $clean);
+
+        return $clean;
+    }
 
 }

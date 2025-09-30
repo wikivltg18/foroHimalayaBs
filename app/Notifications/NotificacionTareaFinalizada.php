@@ -49,7 +49,7 @@ class NotificacionTareaFinalizada extends Notification implements ShouldQueue
             ->line('Tarea: ' . ($d['tarea'] ?? ''))
             ->line('Cliente: ' . ($d['cliente'] ?? ''))
             ->line('Área: ' . ($d['area'] ?? ''))
-            ->line('Fecha: ' . (!empty($d['fecha']) ? \Carbon\Carbon::parse($d['fecha'])->format('d/m/Y H:i') : '—'))
+            ->line('Fecha: ' . (!empty($d['fecha']) ? dtz($d['fecha'], 'd/m/Y H:i') : '—'))
             ->action('Ver tablero', $d['url'] ?? url('/'));
     }
 }

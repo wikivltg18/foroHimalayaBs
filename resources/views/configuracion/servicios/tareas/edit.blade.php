@@ -37,7 +37,7 @@
             @if($tarea->finalizada_at)
                 <div class="alert alert-warning">
                     Esta tarea está finalizada desde
-                    <strong>{{ $tarea->finalizada_at->timezone('America/Bogota')->format('d/m/Y g:i a') }}</strong>.
+                    <strong>{{ dtz($tarea->finalizada_at, 'd/m/Y g:i a') }}</strong>.
                     <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" value="1" id="reactivar" name="reactivar">
                         <label class="form-check-label" for="reactivar">
@@ -129,7 +129,7 @@
                 <div class="col-md-6">
                     <label class="label mb-2">Fecha de entrega:</label>
                     <input type="date" class="form-control" name="fecha_de_entrega"
-                        value="{{ old('fecha_de_entrega', optional($tarea->fecha_de_entrega)->format('Y-m-d')) }}">
+                        value="{{ old('fecha_de_entrega', dtz($tarea->fecha_de_entrega, 'Y-m-d')) }}">
                 </div>
             </div>
 

@@ -46,6 +46,8 @@ class NotificacionComentarioTarea extends Notification implements ShouldQueue
     {
         $d = $this->toDatabase($notifiable);
 
+        $fechaComentario = dtz($d['created_at'], 'd/m/Y H:i'); // o usar Carbon directamente
+
         return (new MailMessage)
             ->subject('Nuevo comentario en tu tarea')
             ->greeting('Hola ' . ($notifiable->name ?? ''))
@@ -53,6 +55,7 @@ class NotificacionComentarioTarea extends Notification implements ShouldQueue
             ->line('Tarea: ' . ($d['tarea'] ?? ''))
             ->line('Cliente: ' . ($d['cliente'] ?? ''))
             ->line('Comentario: ' . ($d['resumen'] ?? ''))
+            ->line('Fecha del comentario: ' . $fechaComentario)
             ->action('Ver comentarios', $d['url'] ?? url('/'));
     }
 }

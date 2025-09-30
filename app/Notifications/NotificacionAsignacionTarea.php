@@ -45,7 +45,7 @@ class NotificacionAsignacionTarea extends Notification implements ShouldQueue
             ->greeting('Hola ' . $notifiable->name)
             ->line('Cliente: ' . $d['cliente'])
             ->line('Tarea: ' . $d['tarea'])
-            ->line('Fecha de entrega: ' . ($d['fecha'] ? \Carbon\Carbon::parse($d['fecha'])->format('d/m/Y H:i') : '—'))
+            ->line('Fecha de entrega: ' . ($d['fecha'] ? dtz($d['fecha'], 'd/m/Y H:i') : '—'))
             ->line('Área: ' . $d['area'])
             ->action('Abrir tablero', $d['url']);
     }
