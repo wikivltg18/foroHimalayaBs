@@ -65,7 +65,10 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+// config/app.php
+'timezone'         => env('APP_TIMEZONE', 'UTC'),              // Guardar y operar en UTC
+'display_timezone' => env('APP_DISPLAY_TZ', 'America/Bogota'), // Mostrar al usuario
+
 
     /*
     |--------------------------------------------------------------------------

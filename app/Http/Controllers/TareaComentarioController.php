@@ -13,86 +13,9 @@ use App\Models\User;
 class TareaComentarioController extends Controller
 {
     public function store(Request $request, TareaServicio $tarea)
-{
-    // Valida el HTML que llega desde Quill
-    $data = $request->validate([
-        'comentario_html' => ['required','string'],
-    ]);
-
-    // Sanitiza HTML en el servidor
-    $html = $this->sanitizeHtml($data['comentario_html']);
-
-    if (trim(strip_tags($html)) === '') {
-        return back()->with('comment_error', 'El comentario no puede estar vacío.')->withInput();
+    {
+        return back()->with('error', 'Para comentar usa el botón "Guardar" del formulario unificado (cambia el estado a uno distinto de Programada).');
     }
-
-    // Si llegaste al show, asumimos que puedes comentar (sin policy)
-    $coment = TareaComentario::create([
-        'id'         => (string) Str::uuid(),      // como no usas trait
-        'tarea_id'   => $tarea->getKey(),
-        'usuario_id' => Auth::id(),
-        'comentario' => $html,
-    ]);
-
-    // ================== NOTIFICACIONES (post-creación) ==================
-    try {
-        // Autor del comentario (para no auto-notificar)
-        $actorId = (int) (Auth::id() ?? 0);
-
-        // Resumen plano del comentario (limpio y corto)
-        $resumen = Str::of(strip_tags((string) $html))->squish()->limit(180, '…');
-
-        // Cargar relaciones que usa la notificación
-        $tarea->loadMissing('area', 'columna.tablero.cliente', 'historiales.autor', 'usuarios');
-
-        // Resolver creador desde el primer historial (si no tienes campo creada_por)
-        $creador = $tarea->historialesCompletos->sortBy('created_at')->first()?->autor; // User|null
-
-        // Construir lista de destinatarios
-        $destinatarios = collect();
-
-        // 1) Asignado principal
-        if ($tarea->usuario_id) {
-            if ($u = User::find($tarea->usuario_id)) {
-                $destinatarios->push($u);
-            }
-        }
-
-        // 2) Creador
-        if ($creador) {
-            $destinatarios->push($creador);
-        }
-
-        // 3) (Opcional) Asignados adicionales (si usas muchos-usuarios)
-        if ($tarea->relationLoaded('usuarios')) {
-            $destinatarios = $destinatarios->merge($tarea->usuarios);
-        } else {
-            // si no estaba cargado, puedes omitir esta línea o descomentar:
-            // $destinatarios = $destinatarios->merge($tarea->usuarios()->get());
-        }
-
-        // Limpiar: quitar nulos, duplicados y el propio autor
-        $destinatarios = $destinatarios
-            ->filter()
-            ->unique('id')
-            ->reject(fn ($u) => (int)$u->id === $actorId);
-
-        // Enviar notificación a cada destinatario
-        foreach ($destinatarios as $user) {
-            $user->notify(new NotificacionComentarioTarea($tarea, (string) $resumen, $actorId));
-        }
-    } catch (\Throwable $e) {
-        \Log::warning('[Notif] Falló notificar comentario de tarea', [
-            'tarea_id'   => $tarea->id,
-            'coment_id'  => $coment->id ?? null,
-            'actor_id'   => $actorId ?? null,
-            'error'      => $e->getMessage(),
-        ]);
-
-    }
-
-    return back()->with('comment_success', 'Tu comentario fue publicado.');
-}
 
     public function destroy(TareaServicio $tarea, TareaComentario $comentario)
     {

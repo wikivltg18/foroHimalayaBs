@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Cliente;
 use App\Models\Servicio;
 use Illuminate\Support\Str;
+use App\Models\EstadoTableroServicio;
 use App\Models\ColumnaTableroServicio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -57,4 +58,64 @@ class TableroServicio extends Model
     {
         return $this->belongsTo(Servicio::class, 'servicio_id');
     }
+
+    /**
+     * Todas las tareas del tablero (vía columnas).
+     */
+    public function tareas()
+    {
+        return $this->hasManyThrough(
+            TareaServicio::class,
+            ColumnaTableroServicio::class,
+            'tablero_servicio_id', // FK en columnas
+            'columna_id',          // FK en tareas
+            'id',                  // local key en tablero
+            'id'                   // local key en columna
+        );
+    }
+
+    /** Helpers de estado */
+    public function isTerminated(): bool
+{
+    return optional($this->estado)->nombre === 'Terminado';
+}
+
+public function canBeFinalized(): bool
+{
+    $finalIds = \App\Models\EstadoTarea::finalIds();
+    return !$this->tareas()
+        ->where(function ($q) use ($finalIds) {
+            $q->whereNull('estado_id')->orWhereNotIn('estado_id', $finalIds);
+        })
+        ->exists();
+}
+
+public function markAsTerminated(): void
+{
+    if (!$this->canBeFinalized()) {
+        throw new \DomainException('No puedes finalizar el tablero: hay tareas pendientes.');
+    }
+    $estado = \App\Models\EstadoTableroServicio::where('nombre', 'Terminado')->firstOrFail();
+    $this->estado()->associate($estado);
+    $this->save();
+}
+
+public function markAsActive(): void
+{
+    $estado = \App\Models\EstadoTableroServicio::where('nombre', 'Activo')->firstOrFail();
+    $this->estado()->associate($estado);
+    $this->save();
+}
+
+    /** (Opcional) contador de pendientes sin scopes, por si lo necesitas en Blade */
+    public function pendingTasksCount(): int
+    {
+        $final = \App\Models\EstadoTarea::finalIds();
+        return $this->tareas()
+            ->where(function ($q) use ($final) {
+                $q->whereNull('estado_id')->orWhereNotIn('estado_id', $final);
+            })
+            ->count();
+    }
+
 }

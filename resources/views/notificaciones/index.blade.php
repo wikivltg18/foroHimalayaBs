@@ -102,7 +102,7 @@
                                         @endif
                                         @if(!empty($d['fecha']))
                                             <span><i class="bi bi-calendar-event me-1"></i>
-                                                {{ \Carbon\Carbon::parse($d['fecha'])->format('d/m/Y H:i') }}
+                                                {{ dtz($d['fecha'], 'd/m/Y H:i') }}
                                             </span>
                                         @endif
                                         <span><i class="bi bi-clock me-1"></i>{{ $n->created_at?->diffForHumans() }}</span>
@@ -179,7 +179,7 @@
                                     @endif
                                     @if(!empty($d['fecha']))
                                         <span><i class="bi bi-calendar-event me-1"></i>
-                                            {{ \Carbon\Carbon::parse($d['fecha'])->format('d/m/Y H:i') }}
+                                            {{ dtz($d['fecha'], 'd/m/Y H:i') }}
                                         </span>
                                     @endif
                                     <span><i class="bi bi-clock me-1"></i>{{ $n->created_at?->diffForHumans() }}</span>
