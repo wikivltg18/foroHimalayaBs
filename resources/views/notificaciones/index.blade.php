@@ -28,7 +28,7 @@
                 case 'comentario_tarea':
                     return ['icon' => 'bi-chat-dots', 'badge' => 'info', 'label' => 'Comentario'];
                 case 'tarea_finalizada':
-                    return ['icon' => 'bi-flag-checkered', 'badge' => 'success', 'label' => 'Finalizada'];
+                    return ['icon' => 'bi-check-circle', 'badge' => 'success', 'label' => 'Finalizada'];
                 default:
                     return ['icon' => 'bi-bell', 'badge' => 'warning', 'label' => 'Notificación'];
             }

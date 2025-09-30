@@ -132,8 +132,6 @@
                                 text: 'No puedes crear un tablero sin fases/columnas. Configura las fases primero.',
                                 icon: 'info',
                             });
-                        } else {
-                            alert('No puedes crear un tablero sin fases/columnas. Configura las fases primero.');
                         }
                         return;
                     }
@@ -149,8 +147,6 @@
                             cancelButtonText: 'Cancelar'
                         });
                         confirmed = !!(res && (res.isConfirmed === true || res.value === true));
-                    } else {
-                        confirmed = window.confirm(`¿Crear el tablero "${nombre}" con ${cantColumnas} columna(s) y estado ${estadoTxt}?`);
                     }
 
                     if (confirmed) {
@@ -176,11 +172,9 @@
                 @if(session('success'))
                     if (window.Swal && Swal.fire) {
                         Swal.fire({ title: '¡Éxito!', text: '{{ session('success') }}', icon: 'success' });
-                    } else {
-                        alert('{{ session('success') }}');
                     }
                 @endif
-        })();
+                    })();
         </script>
     @endpush
 </x-app-layout>

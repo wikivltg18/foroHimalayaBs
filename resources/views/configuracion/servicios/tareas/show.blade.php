@@ -231,7 +231,7 @@
                                     <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Actualizar estado / tiempo</label>
                                     <select name="estado_id" class="form-select" {{ $finalizada ? 'disabled' : '' }}>
                                         @foreach ($estados as $estado)
-                                            <option value="{{ $estado->id }}" @selected($tarea->estado_id == $estado->id)">
+                                            <option value="{{ $estado->id }}" @selected(old('estado_id', $tarea->estado_id) == $estado->id)>
                                                 {{ $estado->nombre }}
                                             </option>
                                         @endforeach
