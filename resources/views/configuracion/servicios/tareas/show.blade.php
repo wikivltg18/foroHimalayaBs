@@ -19,6 +19,15 @@
             Editar
         </a>
 
+        @can('schedule-task', $tarea)
+            <form method="POST" action="{{ route('google.tareas.createEvent', ['tarea' => $tarea->id]) }}" class="d-inline me-2">
+                @csrf
+                <button type="submit" class="btn btn-outline-success btn-pill" @if(!$tarea->usuario_id) disabled title="Asignar colaborador primero" @endif>
+                    <i class="bi bi-calendar-plus me-1"></i> Crear evento en Google Calendar
+                </button>
+            </form>
+        @endcan
+
         <form method="POST" class="d-inline form-eliminar" action="{{ route('tareas.destroyInColumn', [
             'cliente' => $cliente->id,
             'servicio' => $servicio->id,
@@ -231,7 +240,7 @@
                                     <label class="form-label fw-semibold mb-2" style="color:#003B7B;">Actualizar estado / tiempo</label>
                                     <select name="estado_id" class="form-select" {{ $finalizada ? 'disabled' : '' }}>
                                         @foreach ($estados as $estado)
-                                            <option value="{{ $estado->id }}" @selected($tarea->estado_id == $estado->id)">
+                                            <option value="{{ $estado->id }}" @selected(old('estado_id', $tarea->estado_id) == $estado->id)>
                                                 {{ $estado->nombre }}
                                             </option>
                                         @endforeach

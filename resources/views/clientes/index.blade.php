@@ -159,7 +159,7 @@
                         confirmButtonText: 'Ok'
                     });
                 @endif
-                                });
+                                    });
 
 
             // Función para limpiar el formulario de filtro

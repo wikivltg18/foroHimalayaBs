@@ -29,5 +29,15 @@ class AuthServiceProvider extends ServiceProvider
 
         // (Opcional) Super admin:
         // Gate::before(fn ($user, $ability) => $user->is_admin ? true : null);
+
+        // Definir permiso para agendar tareas: permite si el usuario tiene permiso 'agendar tarea' o es el usuario asignado a la tarea
+        Gate::define('schedule-task', function ($user, $tarea) {
+            try {
+                if (method_exists($user, 'hasPermissionTo') && $user->hasPermissionTo('agendar tarea')) return true;
+            } catch (\Throwable $e) {
+                // ignore permission check errors
+            }
+            return isset($tarea->usuario_id) && ((int)$tarea->usuario_id === (int)$user->id);
+        });
     }
 }

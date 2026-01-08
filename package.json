@@ -18,6 +18,14 @@
         "vite": "^7.0.4"
     },
     "dependencies": {
+        "@fullcalendar/core": "^6.1.20",
+        "@fullcalendar/daygrid": "^6.1.20",
+        "@fullcalendar/interaction": "^6.1.20",
+        "@fullcalendar/list": "^6.1.20",
+        "@fullcalendar/resource": "^6.1.20",
+        "@fullcalendar/resource-timeline": "^6.1.20",
+        "@fullcalendar/timegrid": "^6.1.20",
+        "@fullcalendar/timeline": "^6.1.20",
         "@popperjs/core": "^2.11.8",
         "bootstrap": "^5.3.7",
         "jquery": "^3.7.1",

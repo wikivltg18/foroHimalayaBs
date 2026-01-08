@@ -5,11 +5,13 @@ use App\Http\Controllers\AreaController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\CargoController;
 use App\Http\Controllers\QuillController;
+use App\Http\Controllers\AgendaController;
 use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ModalidadController;
+use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\HerramientaController;
 use App\Http\Controllers\MapaClienteController;
 use App\Http\Controllers\QuillUploadController;
@@ -17,6 +19,7 @@ use App\Http\Controllers\FaseServicioController;
 use App\Http\Controllers\TareaRecursoController;
 use App\Http\Controllers\TipoServicioController;
 use App\Http\Controllers\TareaServicioController;
+use App\Http\Controllers\GoogleCalendarController;
 use App\Http\Controllers\TableroServicioController;
 use App\Http\Controllers\TareaComentarioController;
 use Spatie\Permission\Middleware\PermissionMiddleware;
@@ -396,5 +399,36 @@ Route::patch(
  ->name('tableros.estado.update');
 
 });
+
+Route::middleware('auth')->group(function () {
+    Route::get('/google/redirect', [GoogleOAuthController::class, 'redirect'])->name('google.redirect');
+    Route::get('/google/callback', [GoogleOAuthController::class, 'callback'])->name('google.callback');
+    // También aceptar el redirect URI por defecto que tienes registrado en Google Console
+    Route::get('/oauth2callback', [GoogleOAuthController::class, 'callback']);
+
+    // Ajustes del usuario: listar y guardar calendario por defecto
+    Route::get('/google/calendars', [GoogleCalendarController::class, 'listCalendars'])->name('google.calendars');
+    Route::post('/google/calendars', [GoogleCalendarController::class, 'setDefaultCalendar'])->name('google.calendars.set');
+
+    // Rutas de prueba
+    Route::post('/google/events/test', [GoogleCalendarController::class, 'createTestEvent'])->name('google.events.test');
+
+    // Crear evento manualmente para una tarea (solo usuarios con permiso 'agendar tarea' o asignado)
+    Route::post('/tareas/{tarea}/calendar/create', [GoogleCalendarController::class, 'createEventForTask'])
+        ->name('google.tareas.createEvent');
+});
+
+
+
+Route::middleware('auth')->group(function () {
+    Route::get('/agenda', [AgendaController::class, 'index'])->name('agenda.index');
+    Route::get('/agenda/resources', [AgendaController::class, 'resources']);
+    Route::get('/agenda/events', [AgendaController::class, 'events']);
+    Route::get('/agenda/available-tasks', [AgendaController::class, 'availableTasks']);
+    Route::post('/agenda/schedule', [AgendaController::class, 'schedule']);
+    Route::post('/agenda/move-block', [AgendaController::class, 'moveBlock']);
+    Route::post('/agenda/unschedule', [AgendaController::class, 'unschedule']);
+});
+
     
 require __DIR__ . '/auth.php';

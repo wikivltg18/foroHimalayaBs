@@ -141,6 +141,7 @@ class TareaServicioController extends Controller
         $user = User::find($validated['usuario_id']);
         if ($user) {
             $user->notify(new NotificacionAsignacionTarea($tarea));
+
         }
 
 
@@ -522,6 +523,7 @@ public function update(
         $estadoAnterior = (int) $tarea->estado_id;
         $nuevoEstado    = (int) $validated['estado_id'];
         $usuarioAnteriorId = (int) $tarea->usuario_id;
+        $fechaAnterior = $tarea->fecha_de_entrega;
 
 
         // === SOLO DESDE EDICIÓN ===
@@ -607,6 +609,8 @@ if ($solicitaReactivar || $reaperturaPorEstado) {
 }
 
 
+
+
         return redirect()->route('configuracion.servicios.tableros.show', [
             'cliente'  => $cliente->id,
             'servicio' => $servicio->id,
@@ -651,6 +655,15 @@ public function destroy(
         } else {
             DB::table('tarea_estados_historial')->where('tarea_id', $tarea->id)->delete();
         }
+
+        // Despachar borrado de eventos en Google para bloques y evento de tarea (si existen)
+        // (El Observer 'deleted' se encargará de esto también, pero si usamos SoftDeletes, el observer 'deleted' salta. 
+        //  Si usamos forceDelete, salta 'forceDeleted'. 
+        //  Como en destroy() usamos delete() (soft o hard dependiendo del modelo), confiamos en el observer.
+        //  AUNQUE, la transacción aquí podría complicar las cosas si el observer se ejecuta afterCommit. 
+        //  Pero dejémoslo limpio para evitar doble dispatch si el observer funciona bien.)
+        // dispatch(new \App\Jobs\RemoveTaskBlocksFromCalendarJob($tarea->id))->onQueue('calendar');
+        // dispatch(new \App\Jobs\RemoveTaskCalendarEvent($tarea->id))->onQueue('calendar');
 
         // Borrar la tarea
         $tarea->delete();
