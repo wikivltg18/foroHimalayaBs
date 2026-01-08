@@ -16,6 +16,7 @@ use Database\Seeders\FaseServiciosSeeder;
 use Database\Seeders\ClienteServicioSeeder;
 use Database\Seeders\TableroServicioSeeder;
 
+
 class DatabaseSeeder extends Seeder
 {
     /**
@@ -39,6 +40,8 @@ class DatabaseSeeder extends Seeder
             EstadoTableroServicioSeeder::class,
             TableroServicioSeeder::class,
             EstadoTareaSeeder::class,
+            TareaServiciosTableSeeder::class,
+            TareaBloquesDemoSeeder::class,
         ]);
     }
 }

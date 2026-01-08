@@ -110,7 +110,6 @@
 
                     @if(!($tableroTerminado || ($pend === 0 && $total > 0)))
                         <div class="col-12">
-                            <h5 class="service-title fw-bold m-2">Finalización del tablero</h5>
                             <div class="alert alert-info">
                                 <strong>Actualmente no puedes realizar ninguna acción sobre este tablero!</strong>
                                 Asegúrate de que todas las tareas estén completadas para finalizarlo, o reactívalo si ya fue
@@ -258,7 +257,7 @@
                     @forelse($tablero->columnas as $col)
                         <div class="card flex-shrink-0 border-0 shadow-sm" style="min-width: 320px; max-width: 320px;">
                             <div class="card-header text-white fw-bold text-center rounded p-2
-                                                                                                                                                                                                                                                                                    d-flex flex-column justify-content-center align-items-center gap-1"
+                                                                                                                                                                                                                                                                                        d-flex flex-column justify-content-center align-items-center gap-1"
                                 style="background-color:#003B7B; min-height:82px;">
                                 <div class="small text-white-50">
                                     Fase: {{ $col->posicion ?? $col->orden }}
@@ -392,7 +391,7 @@
                     @else
                         return false;
                     @endif
-                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                            }
 
                 function handleQueryParam() {
                     // 2) Param opcional ?created=1

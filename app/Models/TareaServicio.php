@@ -4,10 +4,12 @@ namespace App\Models;
 
 use App\Models\Area;
 use App\Models\EstadoTarea;
+use App\Models\TareaBloque;
 use App\Models\TareaRecurso;
 use App\Models\TareaTimeLog;
 use App\Models\TareaComentario;
 use App\Models\TareaEstadoHistorial;
+use App\Models\TaskCalendarEvent;
 use App\Models\ColumnaTableroServicio;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -42,6 +44,8 @@ class TareaServicio extends Model
         'finalizada_at'     => 'datetime',
         'fecha_de_entrega' => 'datetime',
         'tiempo_estimado_h' => 'decimal:2',
+        'programada_inicio' => 'datetime',
+        'programada_fin'    => 'datetime',
     ];
 
     // Relaciones
@@ -77,6 +81,16 @@ class TareaServicio extends Model
         return $this->hasMany(TareaTimeLog::class, 'tarea_id')->latest('started_at');
     }
 
+    public function bloques()
+    {
+        return $this->hasMany(TareaBloque::class, 'tarea_id')->orderBy('orden');
+    }
+
+    public function calendarEvents()
+    {
+        return $this->hasMany(TaskCalendarEvent::class, 'tarea_id');
+    }
+
     public function historialesCompletos()
 {
     return $this->hasMany(TareaEstadoHistorial::class, 'tarea_id');
@@ -87,4 +101,15 @@ public function creadorUser() // retorna User|null
     $first = $this->historialesCompletos()->oldest('created_at')->first();
     return $first?->autor; // asumiendo relación 'autor' en TareaEstadoHistorial->belongsTo(User::class,'cambiado_por')
 }
+
+    // Scopes para agendamiento
+    public function scopeProgramadas($query)
+    {
+        return $query->whereNotNull('programada_inicio');
+    }
+
+    public function scopeSinProgramar($query)
+    {
+        return $query->whereNull('programada_inicio');
+    }
 }

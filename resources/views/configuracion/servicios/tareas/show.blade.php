@@ -19,6 +19,15 @@
             Editar
         </a>
 
+        @can('schedule-task', $tarea)
+            <form method="POST" action="{{ route('google.tareas.createEvent', ['tarea' => $tarea->id]) }}" class="d-inline me-2">
+                @csrf
+                <button type="submit" class="btn btn-outline-success btn-pill" @if(!$tarea->usuario_id) disabled title="Asignar colaborador primero" @endif>
+                    <i class="bi bi-calendar-plus me-1"></i> Crear evento en Google Calendar
+                </button>
+            </form>
+        @endcan
+
         <form method="POST" class="d-inline form-eliminar" action="{{ route('tareas.destroyInColumn', [
             'cliente' => $cliente->id,
             'servicio' => $servicio->id,
