@@ -410,6 +410,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/google/calendars', [GoogleCalendarController::class, 'listCalendars'])->name('google.calendars');
     Route::post('/google/calendars', [GoogleCalendarController::class, 'setDefaultCalendar'])->name('google.calendars.set');
 
+    // AJAX: obtener calendarios del usuario autenticado
+    Route::get('/ajax/google/calendars', [GoogleCalendarController::class, 'getUserCalendars'])->name('ajax.google.calendars');
+
     // Rutas de prueba
     Route::post('/google/events/test', [GoogleCalendarController::class, 'createTestEvent'])->name('google.events.test');
 
@@ -422,8 +425,8 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware('auth')->group(function () {
     Route::get('/agenda', [AgendaController::class, 'index'])->name('agenda.index');
-    Route::get('/agenda/resources', [AgendaController::class, 'resources']);
-    Route::get('/agenda/events', [AgendaController::class, 'events']);
+    Route::get('/agenda/resources', [AgendaController::class, 'resources'])->name('agenda.resources');
+    Route::get('/agenda/events', [AgendaController::class, 'events'])->name('agenda.events');
     Route::get('/agenda/available-tasks', [AgendaController::class, 'availableTasks']);
     Route::post('/agenda/schedule', [AgendaController::class, 'schedule']);
     Route::post('/agenda/move-block', [AgendaController::class, 'moveBlock']);

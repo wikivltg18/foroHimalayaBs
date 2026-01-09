@@ -4,7 +4,7 @@ import laravel from 'laravel-vite-plugin';
 export default defineConfig({
     plugins: [
         laravel({
-            input: ['resources/js/app.js', 'resources/css/app.css', 'resources/css/custom.css', 'resources/js/custom.js', 'resources/js/agenda.js'],
+            input: ['resources/js/app.js', 'resources/css/app.css', 'resources/css/custom.css', 'resources/js/custom.js', 'resources/js/agenda.js', 'resources/js/create-task-calendar.js'],
             refresh: true,
         }),
     ],

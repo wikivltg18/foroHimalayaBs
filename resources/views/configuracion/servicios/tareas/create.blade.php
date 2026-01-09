@@ -119,6 +119,40 @@
                 </div>
             </div>
 
+            {{-- SECCIÓN: Google Calendar --}}
+            <div class="row mt-4">
+                <div class="col-md-12">
+                    <div id="googleCalendarSelection" class="mb-3"></div>
+                </div>
+            </div>
+
+            {{-- SECCIÓN: Ver disponibilidad --}}
+            <div class="row mt-3" id="calendarButtonContainer" style="display: none;">
+                <div class="col-md-12">
+                    <button type="button" class="btn btn-outline-info" id="btnViewCalendar">
+                        <i class="bi bi-calendar-check me-2"></i>Ver disponibilidad de colaboradores
+                    </button>
+                    <small class="text-muted ms-2">Haz clic para seleccionar un horario disponible en el calendario</small>
+                </div>
+            </div>
+
+            {{-- SECCIÓN: Horario seleccionado --}}
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <div id="selectedTimeDisplay" style="display: none;" class="alert alert-success mb-3">
+                        <i class="bi bi-check-circle me-2"></i>
+                        <strong>Horario seleccionado:</strong>
+                        <span id="selectedTimeText"></span>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Campos ocultos para almacenar selecciones del calendario --}}
+            <input type="hidden" name="selected_start_time" id="selectedStartTime" value="{{ old('selected_start_time') }}">
+            <input type="hidden" name="selected_user_id" id="selectedUserId" value="{{ old('selected_user_id') }}">
+            <input type="hidden" name="google_calendar_id" id="selectedGoogleCalendar" value="{{ old('google_calendar_id', 'primary') }}">
+
+
             <div class="row mt-3">
                 <div class="col-md-12">
                     <label class="label mb-2">Descripción:</label>
@@ -148,6 +182,14 @@
             </div>
         </form>
     </div>
+
+    {{-- Modal de Calendario --}}
+    <x-calendar-modal 
+        :modalId="'taskCalendarModal'"
+        :eventsUrl="route('agenda.events')"
+        :resourcesUrl="route('agenda.resources')"
+        :onSelectCallback="'onTaskCalendarSelect'"
+    />
 
     {{-- Scripts locales (no Quill; Quill se maneja en resources/js/app.js) --}}
     @push('scripts')
@@ -254,5 +296,10 @@
                 }
             });
         </script>
+    @endpush
+
+    {{-- Cargar script del calendario --}}
+    @push('scripts')
+        @vite('resources/js/create-task-calendar.js')
     @endpush
 </x-app-layout>

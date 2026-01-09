@@ -106,6 +106,27 @@
                     </div>
                 </div>
 
+                {{-- Bloques programados --}}
+                @php
+                    $bloques = $tarea->bloques()->with('user')->orderBy('orden')->get();
+                @endphp
+                @if($bloques->isNotEmpty())
+                    <div class="h5 fw-bold mb-3" style="color:#003B7B;">Horario Programado</div>
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            @foreach($bloques as $bloque)
+                                <div class="alert alert-info mb-2">
+                                    <i class="bi bi-clock me-2"></i>
+                                    {{ dtz($bloque->inicio, 'd/m/Y H:i') }} - {{ dtz($bloque->fin, 'H:i') }}
+                                    <span class="text-muted ms-2">
+                                        ({{ $bloque->inicio->diffInHours($bloque->fin, true) }}h)
+                                    </span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
                 {{-- Gestión de tiempo --}}
                 <div class="h5 fw-bold mb-3" style="color:#003B7B;">Gestión de tiempo</div>
                 <div class="row mb-4 align-items-center">

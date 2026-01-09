@@ -54,7 +54,7 @@ class GoogleCalendarController extends Controller
         try {
             $eventId = $this->gcal->createEvent($acc, [
                 'summary'     => 'Evento de prueba',
-                'description' => 'Creado desde Laravel',
+                'description' => 'http://localhost:8000/google/calendars',
                 'start'       => $start,
                 'end'         => $end,
                 // 'attendees' => [['email' => 'alguien@dominio.com']],
@@ -86,5 +86,42 @@ class GoogleCalendarController extends Controller
         dispatch(new \App\Jobs\CreateTaskCalendarEvent($tarea->id, (int) $tarea->usuario_id))->onQueue('calendar');
 
         return back()->with('success', 'Solicitud enviada: se creará el evento en Google Calendar del colaborador asignado.');
+    }
+
+    /**
+     * Obtener calendarios del usuario autenticado (JSON)
+     * Retorna: [{ id, summary, primary, calendar_id (default) }]
+     */
+    public function getUserCalendars()
+    {
+        $acc = $this->account();
+        if (!$acc) {
+            return response()->json([
+                'connected' => false,
+                'message'   => 'Cuenta de Google no conectada',
+                'calendars' => [],
+            ]);
+        }
+
+        try {
+            $calendars = $this->gcal->listCalendars($acc);
+            
+            return response()->json([
+                'connected'       => true,
+                'default_calendar' => $acc->calendar_id ?? 'primary',
+                'calendars'       => $calendars,
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error obteniendo calendarios del usuario', [
+                'user_id' => auth()->id(),
+                'error'   => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'connected' => true,
+                'message'   => 'Error al obtener calendarios',
+                'calendars' => [],
+            ], 500);
+        }
     }
 }

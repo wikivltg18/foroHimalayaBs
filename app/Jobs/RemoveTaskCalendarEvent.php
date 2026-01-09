@@ -25,7 +25,7 @@ class RemoveTaskCalendarEvent implements ShouldQueue
             $acc = UserGoogleAccount::where('user_id', $r->user_id)->first();
             if ($acc && $acc->refresh_token) {
                 try {
-                    $gcal->deleteEvent($acc, $r->google_event_id);
+                    $gcal->deleteEvent($acc, $r->google_event_id, $r->calendar_id);
                     Log::info("RemoveTaskCalendarEvent: Evento eliminado en Google", ['tarea_id' => $this->tareaId, 'google_event_id' => $r->google_event_id]);
                 } catch (\Google_Service_Exception $e) {
                     if ($e->getCode() === 404 || $e->getCode() === 410) {

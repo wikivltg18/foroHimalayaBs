@@ -55,7 +55,7 @@ class GoogleCalendarService
         })->toArray();
     }
 
-public function createEvent(UserGoogleAccount $acc, array $payload): string
+public function createEvent(UserGoogleAccount $acc, array $payload, ?string $calendarId = null): string
 {
     $service = $this->service($acc);
 
@@ -69,15 +69,15 @@ public function createEvent(UserGoogleAccount $acc, array $payload): string
         'reminders'   => ['useDefault' => false, 'overrides' => [['method'=>'email','minutes'=>1440], ['method'=>'popup','minutes'=>60]]],
     ]);
 
-    $calendarId = $acc->calendar_id ?: 'primary';
+    $calendarId = $calendarId ?? ($acc->calendar_id ?: 'primary');
     $created = $service->events->insert($calendarId, $event, ['sendUpdates' => 'none']);
     return $created->getId();
 }
 
-public function updateEvent(UserGoogleAccount $acc, string $eventId, array $payload): void
+public function updateEvent(UserGoogleAccount $acc, string $eventId, array $payload, ?string $calendarId = null): void
 {
     $service = $this->service($acc);
-    $calendarId = $acc->calendar_id ?: 'primary';
+    $calendarId = $calendarId ?? ($acc->calendar_id ?: 'primary');
     $event = $service->events->get($calendarId, $eventId);
 
     if (array_key_exists('summary', $payload))     $event->setSummary($payload['summary']);
@@ -92,10 +92,10 @@ public function updateEvent(UserGoogleAccount $acc, string $eventId, array $payl
     $service->events->update($calendarId, $eventId, $event, ['sendUpdates' => 'none']);
 }
 
-public function deleteEvent(UserGoogleAccount $acc, string $eventId): void
+public function deleteEvent(UserGoogleAccount $acc, string $eventId, ?string $calendarId = null): void
 {
     $service = $this->service($acc);
-    $calendarId = $acc->calendar_id ?: 'primary';
+    $calendarId = $calendarId ?? ($acc->calendar_id ?: 'primary');
     $service->events->delete($calendarId, $eventId);
 }
 }
