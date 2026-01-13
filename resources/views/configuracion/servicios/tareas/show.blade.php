@@ -117,7 +117,9 @@
                             @foreach($bloques as $bloque)
                                 <div class="alert alert-info mb-2">
                                     <i class="bi bi-clock me-2"></i>
-                                    {{ dtz($bloque->inicio, 'd/m/Y H:i') }} - {{ dtz($bloque->fin, 'H:i') }}
+                                    {{ $bloque->inicio->copy()->setTimezone('America/Bogota')->format('d/m/Y H:i') }}
+                                    -
+                                    {{ $bloque->fin->copy()->setTimezone('America/Bogota')->format('H:i') }}
                                     <span class="text-muted ms-2">
                                         ({{ $bloque->inicio->diffInHours($bloque->fin, true) }}h)
                                     </span>

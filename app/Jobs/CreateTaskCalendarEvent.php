@@ -19,11 +19,22 @@ class CreateTaskCalendarEvent implements ShouldQueue
 
     public function handle(GoogleCalendarService $svc): void
     {
+        \Log::info("CreateTaskCalendarEvent: Job started for Tarea ID: {$this->tareaId}, User ID: {$this->userId}");
+
         $tarea = TareaServicio::with(['bloques', 'columna.tablero'])->find($this->tareaId);
-        if (!$tarea) return;
+        if (!$tarea) {
+            \Log::error("CreateTaskCalendarEvent: Tarea not found.");
+            return;
+        }
 
         $acc = UserGoogleAccount::where('user_id', $this->userId)->first();
-        if (!$acc) return;
+        if (!$acc) {
+            \Log::error("CreateTaskCalendarEvent: UserGoogleAccount not found for User ID: {$this->userId}");
+            // Esto es normal si el usuario asignado NO tiene calendario conectado.
+            // Tal vez deberíamos intentar buscar el del Superadmin si es una cuenta delegada,
+            // pero si no hay registro UserGoogleAccount, asumimos que no hay integración.
+            return;
+        }
 
         // Check if it's a delegated account (placeholder)
         if ($acc->access_token === 'SUB_ACCOUNT') {

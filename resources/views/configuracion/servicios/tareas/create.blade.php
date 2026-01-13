@@ -189,8 +189,8 @@
     {{-- Modal de Calendario --}}
     <x-calendar-modal 
         :modalId="'taskCalendarModal'"
-        :eventsUrl="route('agenda.events')"
-        :resourcesUrl="route('agenda.resources')"
+        :eventsUrl="route('google.events')"
+        :resourcesUrl="route('google.resources')"
         :onSelectCallback="'onTaskCalendarSelect'"
     />
 

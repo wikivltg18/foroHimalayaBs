@@ -411,7 +411,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/google/calendars', [GoogleCalendarController::class, 'setDefaultCalendar'])->name('google.calendars.set');
     
     // Vista de solo lectura (Calendario de Equipo)
-    Route::get('/google/calendario', [GoogleCalendarController::class, 'viewTeamCalendar'])->name('google.team_calendar');
+    Route::get('/google/calendars/team', [GoogleCalendarController::class, 'viewTeamCalendar'])->name('google.team_calendar');
     
     // API Calendar (Migrated from Agenda)
     Route::get('/ajax/google/events', [GoogleCalendarController::class, 'events'])->name('google.events');

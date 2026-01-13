@@ -230,6 +230,7 @@ class GoogleCalendarController extends Controller
             })
             ->values();
 
+            dump($bloques);
         // 2. Tareas por fecha de entrega (Hitos/Deadlines)
         // Solo tareas con usuario asignado y fecha de entrega en el rango
         $entregas = TareaServicio::with('usuario')

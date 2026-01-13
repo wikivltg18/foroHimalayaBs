@@ -149,10 +149,11 @@ class TareaServicioController extends Controller
                     );
 
                     // Notificar si se ajustó el horario
+                    // Notificar si se ajustó el horario
                     if ($blocks[0]->inicio->ne($requestedStart)) {
-                        $adjustedTime = $blocks[0]->inicio->format('d/m/Y H:i');
+                        $adjustedTime = dtz($blocks[0]->inicio, 'd/m/Y H:i');
                         session()->flash('info', 
-                            "El horario fue ajustado a {$adjustedTime} para cumplir con franjas laborales."
+                            "El horario fue ajustado a {$adjustedTime} para cumplir con franjas laborales ({$displayTz})."
                         );
                     }
 
@@ -429,6 +430,9 @@ class TareaServicioController extends Controller
             $tarea->usuarios->contains(fn ($u) => (int) $u->id === (int) auth()->id());
     }
 
+    // Cargar bloques ordenados para la vista
+    $bloques = $tarea->bloques()->with('user')->orderBy('orden')->get();
+
     return view('configuracion.servicios.tareas.show', [
         'cliente' => $cliente,
         'servicio' => $servicio,
@@ -437,6 +441,7 @@ class TareaServicioController extends Controller
         'tarea'    => $tarea,
         'estados'=> $estados,
         'puedeBorrarComentarios' => $puedeBorrarComentarios,
+        'bloques' => $bloques,
     ]);
 }
 
