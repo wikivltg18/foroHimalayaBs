@@ -203,6 +203,8 @@ class GoogleCalendarController extends Controller
         $from = Carbon::parse($r->query('from'));
         $to   = Carbon::parse($r->query('to'));
 
+        \Log::info("GoogleCalendarController::events Request: From $from To $to");
+
         // 1. Bloques de trabajo programados
         $bloques = TareaBloque::with('tarea')
             ->where(function($q) use ($from,$to) {
@@ -215,11 +217,15 @@ class GoogleCalendarController extends Controller
             ->get()
             ->filter(fn($b) => $b->tarea !== null)
             ->map(function($b){
+                $tz = config('app.display_timezone');
                 return [
                     'id'         => $b->id,
                     'resourceId' => $b->user_id,
-                    'start'      => $b->inicio->toIso8601String(),
-                    'end'        => $b->fin->toIso8601String(),
+                    // Enviar "Floating Time" (hora local sin zona)
+                    // Como el JS está en modo UTC (fallback), si enviamos "2023...T08:00:00",
+                    // FullCalendar lo pintará a las 08:00.
+                    'start'      => $b->inicio->timezone($tz)->format('Y-m-d\TH:i:s'),
+                    'end'        => $b->fin->timezone($tz)->format('Y-m-d\TH:i:s'),
                     'title'      => $b->tarea->titulo,
                     'extendedProps' => [
                         'type'     => 'block',
@@ -230,7 +236,6 @@ class GoogleCalendarController extends Controller
             })
             ->values();
 
-            dump($bloques);
         // 2. Tareas por fecha de entrega (Hitos/Deadlines)
         // Solo tareas con usuario asignado y fecha de entrega en el rango
         $entregas = TareaServicio::with('usuario')
