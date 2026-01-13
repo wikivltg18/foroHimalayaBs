@@ -25,8 +25,31 @@ class CreateTaskCalendarEvent implements ShouldQueue
         $acc = UserGoogleAccount::where('user_id', $this->userId)->first();
         if (!$acc) return;
 
-        // Usar el calendario de la tarea si está definido, sino el del usuario
-        $calendarId = $tarea->google_calendar_id ?? ($acc->calendar_id ?: 'primary');
+        // Check if it's a delegated account (placeholder)
+        if ($acc->access_token === 'SUB_ACCOUNT') {
+            // Find a valid Superadmin account to perform the action
+            // Assuming User with ID 1 is Superadmin or finding by Role
+            // Strategy: Find any user with 'Superadmin' role who has a connected Google Account
+            $superAdmin = \App\Models\User::role('Superadministrador')
+                ->whereHas('googleAccount', function($q) {
+                    $q->where('access_token', '!=', 'SUB_ACCOUNT');
+                })
+                ->with('googleAccount')
+                ->first();
+
+            if (!$superAdmin || !$superAdmin->googleAccount) {
+                \Log::error("No Superadmin with connected Google Account found to handle delegated task for user {$this->userId}");
+                return;
+            }
+
+            // Use Superadmin's credentials, but keep the original user's calendar ID
+            $effectiveAcc = $superAdmin->googleAccount;
+            $calendarId = $acc->calendar_id; // The target calendar selected in config
+        } else {
+            // Normal flow
+            $effectiveAcc = $acc;
+            $calendarId = $tarea->google_calendar_id ?? ($acc->calendar_id ?: 'primary');
+        }
 
         // ============ ELIMINAR EVENTOS ANTIGUOS ANTES DE CREAR NUEVOS ============
         // Esto garantiza que al actualizar no se dupliquen eventos
@@ -38,7 +61,7 @@ class CreateTaskCalendarEvent implements ShouldQueue
         
         foreach ($oldBlockEvents as $blockEvent) {
             try {
-                $svc->deleteEvent($acc, $blockEvent->google_event_id, $blockEvent->calendar_id);
+                $svc->deleteEvent($effectiveAcc, $blockEvent->google_event_id, $blockEvent->calendar_id);
             } catch (\Exception $e) {
                 \Log::warning("No se pudo eliminar evento de bloque: {$blockEvent->google_event_id}");
             }
@@ -52,7 +75,7 @@ class CreateTaskCalendarEvent implements ShouldQueue
             
         if ($oldEvent) {
             try {
-                $svc->deleteEvent($acc, $oldEvent->google_event_id, $oldEvent->calendar_id);
+                $svc->deleteEvent($effectiveAcc, $oldEvent->google_event_id, $oldEvent->calendar_id);
             } catch (\Exception $e) {
                 \Log::warning("No se pudo eliminar evento genérico: {$oldEvent->google_event_id}");
             }
@@ -85,7 +108,7 @@ class CreateTaskCalendarEvent implements ShouldQueue
             $start = $tarea->fecha_de_entrega?->copy()->subHour() ?? now()->addMinutes(15);
             $end   = $start->copy()->addHours((float) $tarea->tiempo_estimado_h ?: 1);
 
-            $eventId = $svc->createEvent($acc, [
+            $eventId = $svc->createEvent($effectiveAcc, [
                 'summary'     => $summary,
                 'description' => $desc,
                 'start'       => $start,
@@ -104,7 +127,7 @@ class CreateTaskCalendarEvent implements ShouldQueue
             foreach ($bloques as $bloque) {
                 $blockSummary = $summary . " (Bloque {$bloque->orden})";
                 
-                $eventId = $svc->createEvent($acc, [
+                $eventId = $svc->createEvent($effectiveAcc, [
                     'summary'     => $blockSummary,
                     'description' => $desc,
                     'start'       => $bloque->inicio,

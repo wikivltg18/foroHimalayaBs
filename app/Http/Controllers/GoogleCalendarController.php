@@ -7,6 +7,10 @@ use Illuminate\Support\Str;
 use App\Models\UserGoogleAccount;
 use App\Models\TaskCalendarEvent;
 use App\Services\GoogleCalendarService;
+use App\Models\User;
+use App\Models\TareaServicio;
+use App\Models\TareaBloque;
+use Carbon\Carbon;
 
 class GoogleCalendarController extends Controller
 {
@@ -24,17 +28,49 @@ class GoogleCalendarController extends Controller
         if (!$acc) return redirect()->route('google.redirect')->with('info', 'Conecta tu cuenta de Google primero.');
 
         $calendars = $this->gcal->listCalendars($acc);
+        
+        // Superadmin logic: list users to assign calendars
+        $users = [];
+        if (auth()->user()->hasRole('Superadministrador')) {
+            $users = User::with('googleAccount')->orderBy('name')->get();
+        }
 
         return view('google.calendars', [
             'calendars' => $calendars,
             'selected'  => $acc->calendar_id ?? 'primary',
+            'users'     => $users, // Pass users to view
         ]);
     }
 
     /** Guarda el calendario por defecto */
     public function setDefaultCalendar(Request $r)
     {
-        $r->validate(['calendar_id' => 'required|string']);
+        $r->validate([
+            'calendar_id' => 'required|string',
+            'user_id'     => 'nullable|integer|exists:users,id'
+        ]);
+
+        // Si es Superadmin y se envía user_id, actualizamos al usuario objetivo
+        if ($r->filled('user_id') && auth()->user()->hasRole('Superadministrador')) {
+            $targetUser = User::findOrFail($r->user_id);
+            
+            // Buscar o crear cuenta google placeholder
+            $acc = UserGoogleAccount::firstOrNew(['user_id' => $targetUser->id]);
+            
+            if (!$acc->exists) {
+                // Valores dummy para cumplir constraints de la tabla
+                $acc->google_user_id = 'delegated_' . $targetUser->id;
+                $acc->email          = $targetUser->email;
+                $acc->access_token   = 'SUB_ACCOUNT'; // Marcador especial
+                $acc->refresh_token  = null;
+                $acc->save();
+            }
+            
+            $acc->update(['calendar_id' => $r->calendar_id]);
+            return back()->with('success', "Calendario asignado a {$targetUser->name}.");
+        }
+
+        // Comportamiento normal (usuario actual)
         $acc = $this->account();
         if (!$acc) return back()->withErrors('Conecta tu cuenta primero.');
         $acc->update(['calendar_id' => $r->calendar_id]);
@@ -45,27 +81,48 @@ class GoogleCalendarController extends Controller
     /** Crea un evento de prueba de 30 minutos desde ahora */
     public function createTestEvent(Request $r)
     {
-        $acc = $this->account();
-        if (!$acc) return redirect()->route('google.redirect')->with('info', 'Conecta tu cuenta de Google primero.');
+        $calendarId = null;
+        $acc = null;
+
+        // Lógica para Superadmin probando calendario de otro usuario
+        if ($r->filled('user_id') && auth()->user()->hasRole('Superadministrador')) {
+            $targetUser = User::findOrFail($r->user_id);
+            $targetAcc = $targetUser->googleAccount;
+            
+            if (!$targetAcc) return back()->withErrors("El usuario {$targetUser->name} no tiene calendario configurado.");
+
+            if ($targetAcc->access_token === 'SUB_ACCOUNT') {
+                // Si es delegado, usamos la cuenta del Superadmin (actual) pero el calendario del usuario
+                $acc = $this->account();
+                if (!$acc) return back()->withErrors('Tu cuenta de Superadmin no está conectada a Google.');
+                $calendarId = $targetAcc->calendar_id;
+            } else {
+                // Si el usuario tiene su propia cuenta conectada, usamos esa (Superadmin tiene acceso total)
+                $acc = $targetAcc;
+            }
+        } else {
+            // Prueba normal (usuario actual)
+            $acc = $this->account();
+            if (!$acc) return redirect()->route('google.redirect')->with('info', 'Conecta tu cuenta de Google primero.');
+        }
 
         $start = now()->addMinutes(5);
         $end   = (clone $start)->addMinutes(30);
 
         try {
             $eventId = $this->gcal->createEvent($acc, [
-                'summary'     => 'Evento de prueba',
-                'description' => 'http://localhost:8000/google/calendars',
+                'summary'     => 'Evento de prueba (System)',
+                'description' => 'Test de conexión desde plataforma',
                 'start'       => $start,
                 'end'         => $end,
-                // 'attendees' => [['email' => 'alguien@dominio.com']],
-            ]);
+            ], $calendarId);
         } catch (\Exception $e) {
-            \Log::error('Error creando evento de prueba en Google Calendar: ' . $e->getMessage(), ['exception' => $e]);
-            return back()->withErrors('Error creando evento de prueba en Google Calendar. Revisa los logs para más detalles.');
+            \Log::error('Error creando evento de prueba: ' . $e->getMessage(), ['exception' => $e]);
+            return back()->withErrors('Error creando evento de prueba en Google Calendar.');
         }
 
         // Evento de prueba: no persistimos en DB para evitar violaciones de FK
-        return back()->with('success', "Evento creado en Google Calendar (ID: {$eventId}). (No se guardó en BD porque es un evento de prueba)");
+        return back()->with('success', "Evento de prueba creado correctamente (ID: {$eventId}).");
     }
 
     /**
@@ -123,5 +180,85 @@ class GoogleCalendarController extends Controller
                 'calendars' => [],
             ], 500);
         }
+    }
+    /**
+     * Vista de solo lectura del calendario del equipo.
+     * Muestra eventos de todos los colaboradores (reutilizando agenda.events).
+     */
+    public function viewTeamCalendar()
+    {
+        $acc = $this->account();
+        if (!$acc) return redirect()->route('google.redirect')->with('info', 'Conecta tu cuenta de Google primero para ver el calendario.');
+
+        return view('google.team_calendar');
+    }
+
+    public function resources()
+    {
+        return User::selectRaw('id as id, name as title')->orderBy('name')->get();
+    }
+
+    public function events(Request $r)
+    {
+        $from = Carbon::parse($r->query('from'));
+        $to   = Carbon::parse($r->query('to'));
+
+        // 1. Bloques de trabajo programados
+        $bloques = TareaBloque::with('tarea')
+            ->where(function($q) use ($from,$to) {
+                $q->whereBetween('inicio', [$from, $to])
+                  ->orWhereBetween('fin',   [$from, $to])
+                  ->orWhere(function($qq) use ($from,$to){
+                      $qq->where('inicio','<=',$from)->where('fin','>=',$to);
+                  });
+            })
+            ->get()
+            ->filter(fn($b) => $b->tarea !== null)
+            ->map(function($b){
+                return [
+                    'id'         => $b->id,
+                    'resourceId' => $b->user_id,
+                    'start'      => $b->inicio->toIso8601String(),
+                    'end'        => $b->fin->toIso8601String(),
+                    'title'      => $b->tarea->titulo,
+                    'extendedProps' => [
+                        'type'     => 'block',
+                        'tarea_id' => $b->tarea_id,
+                        'orden'    => $b->orden,
+                    ],
+                ];
+            })
+            ->values();
+
+        // 2. Tareas por fecha de entrega (Hitos/Deadlines)
+        // Solo tareas con usuario asignado y fecha de entrega en el rango
+        $entregas = TareaServicio::with('usuario')
+            ->whereNotNull('usuario_id')
+            ->whereNotNull('fecha_de_entrega')
+            ->whereBetween('fecha_de_entrega', [$from, $to])
+            ->get()
+            ->map(function($t){
+                // Representamos la entrega como un evento de 1 hora terminando en la hora de entrega, 
+                // o un evento de todo el día si prefieres. 
+                // Aquí: 1 hora antes de la fecha_de_entrega hasta fecha_de_entrega.
+                $end   = $t->fecha_de_entrega;
+                $start = $end->copy()->subHour(); 
+
+                return [
+                    'id'         => 'delivery_' . $t->id,
+                    'resourceId' => $t->usuario_id,
+                    'start'      => $start->toIso8601String(),
+                    'end'        => $end->toIso8601String(),
+                    'title'      => '📅 Entrega: ' . $t->titulo,
+                    'backgroundColor' => '#dc3545', // Rojo para diferenciar
+                    'borderColor'     => '#dc3545',
+                    'extendedProps' => [
+                        'type'     => 'delivery',
+                        'tarea_id' => $t->id,
+                    ],
+                ];
+            });
+
+        return response()->json($bloques->merge($entregas));
     }
 }

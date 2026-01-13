@@ -409,6 +409,13 @@ Route::middleware('auth')->group(function () {
     // Ajustes del usuario: listar y guardar calendario por defecto
     Route::get('/google/calendars', [GoogleCalendarController::class, 'listCalendars'])->name('google.calendars');
     Route::post('/google/calendars', [GoogleCalendarController::class, 'setDefaultCalendar'])->name('google.calendars.set');
+    
+    // Vista de solo lectura (Calendario de Equipo)
+    Route::get('/google/calendario', [GoogleCalendarController::class, 'viewTeamCalendar'])->name('google.team_calendar');
+    
+    // API Calendar (Migrated from Agenda)
+    Route::get('/ajax/google/events', [GoogleCalendarController::class, 'events'])->name('google.events');
+    Route::get('/ajax/google/resources', [GoogleCalendarController::class, 'resources'])->name('google.resources');
 
     // AJAX: obtener calendarios del usuario autenticado
     Route::get('/ajax/google/calendars', [GoogleCalendarController::class, 'getUserCalendars'])->name('ajax.google.calendars');
@@ -422,15 +429,8 @@ Route::middleware('auth')->group(function () {
 });
 
 
-
 Route::middleware('auth')->group(function () {
-    Route::get('/agenda', [AgendaController::class, 'index'])->name('agenda.index');
-    Route::get('/agenda/resources', [AgendaController::class, 'resources'])->name('agenda.resources');
-    Route::get('/agenda/events', [AgendaController::class, 'events'])->name('agenda.events');
-    Route::get('/agenda/available-tasks', [AgendaController::class, 'availableTasks']);
-    Route::post('/agenda/schedule', [AgendaController::class, 'schedule']);
-    Route::post('/agenda/move-block', [AgendaController::class, 'moveBlock']);
-    Route::post('/agenda/unschedule', [AgendaController::class, 'unschedule']);
+    // Agenda routes removed
 });
 
     

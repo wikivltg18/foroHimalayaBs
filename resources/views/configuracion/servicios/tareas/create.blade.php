@@ -123,6 +123,9 @@
             <div class="row mt-4">
                 <div class="col-md-12">
                     <div id="googleCalendarSelection" class="mb-3"></div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-2"></i>Guardar selección
+                    </button>
                 </div>
             </div>
 
