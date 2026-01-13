@@ -173,6 +173,15 @@
                                                 {{ $titulo ?? 'Página principal' }}
                                             </h3>
                                         </div>
+
+                                        @if(auth()->user()->googleAccount)
+                                            {{-- Ya tiene cuenta de Google vinculada, no mostrar botón --}}
+                                        @else
+                                            <a href="{{ route('google.calendars') }}" class="btn btn-outline-primary btn-sm">
+                                                <i class="bi bi-google"></i> Configurar Google Calendar
+                                            </a>
+                                        @endif
+                                        
                                     </div>
                                     @if(isset($buttonPress))
                                         <div class="col-md-6 col-sm-2 d-flex justify-content-end">

@@ -121,4 +121,10 @@ class User extends Authenticatable
         }
         return parent::hasPermissionTo($permission, $guardName);
     }*/
+
+        // app/Models/User.php
+public function googleAccount()
+{
+    return $this->hasOne(UserGoogleAccount::class);
+}
 }

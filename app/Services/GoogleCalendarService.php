@@ -12,19 +12,38 @@ class GoogleCalendarService
 {
     private function client(UserGoogleAccount $acc): Google_Client
     {
+        $clientId = config('services.google.client_id');
+        $clientSecret = config('services.google.client_secret');
+
+        if (!$clientId || !$clientSecret) {
+            throw new \Exception('Google Client ID/Secret not defined in .env or config');
+        }
+
         $client = new Google_Client();
-        $client->setClientId(env('GOOGLE_CLIENT_ID'));
-        $client->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
-        $client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
+        $client->setClientId($clientId);
+        $client->setClientSecret($clientSecret);
+        $client->setRedirectUri(config('services.google.redirect_uri'));
         $client->setAccessType('offline');
         $client->setScopes(['https://www.googleapis.com/auth/calendar']);
 
         $token = json_decode($acc->access_token, true);
+        if (!$token) {
+            \Log::error("Invalid access_token for UserGoogleAccount ID: {$acc->id}. Raw data: " . substr($acc->access_token, 0, 20));
+            // Instead of crashing immediately here with "json key missing", let's throw a clearer exception
+            throw new \Exception('Invalid Access Token stored for user.');
+        }
+
         $client->setAccessToken($token);
 
         if ($client->isAccessTokenExpired() && $acc->refresh_token) {
             $client->fetchAccessTokenWithRefreshToken($acc->refresh_token);
             $new = $client->getAccessToken();
+            
+            if (!$new) {
+                 \Log::error("Failed to refresh token for UserGoogleAccount ID: {$acc->id}");
+                 throw new \Exception('Failed to refresh Google Access Token.');
+            }
+
             $acc->update([
                 'access_token'     => json_encode($new),
                 'token_expires_at' => now()->addSeconds($new['expires_in'] ?? 3600),
@@ -55,7 +74,7 @@ class GoogleCalendarService
         })->toArray();
     }
 
-public function createEvent(UserGoogleAccount $acc, array $payload): string
+public function createEvent(UserGoogleAccount $acc, array $payload, ?string $calendarId = null): string
 {
     $service = $this->service($acc);
 
@@ -69,15 +88,15 @@ public function createEvent(UserGoogleAccount $acc, array $payload): string
         'reminders'   => ['useDefault' => false, 'overrides' => [['method'=>'email','minutes'=>1440], ['method'=>'popup','minutes'=>60]]],
     ]);
 
-    $calendarId = $acc->calendar_id ?: 'primary';
+    $calendarId = $calendarId ?? ($acc->calendar_id ?: 'primary');
     $created = $service->events->insert($calendarId, $event, ['sendUpdates' => 'none']);
     return $created->getId();
 }
 
-public function updateEvent(UserGoogleAccount $acc, string $eventId, array $payload): void
+public function updateEvent(UserGoogleAccount $acc, string $eventId, array $payload, ?string $calendarId = null): void
 {
     $service = $this->service($acc);
-    $calendarId = $acc->calendar_id ?: 'primary';
+    $calendarId = $calendarId ?? ($acc->calendar_id ?: 'primary');
     $event = $service->events->get($calendarId, $eventId);
 
     if (array_key_exists('summary', $payload))     $event->setSummary($payload['summary']);
@@ -92,10 +111,10 @@ public function updateEvent(UserGoogleAccount $acc, string $eventId, array $payl
     $service->events->update($calendarId, $eventId, $event, ['sendUpdates' => 'none']);
 }
 
-public function deleteEvent(UserGoogleAccount $acc, string $eventId): void
+public function deleteEvent(UserGoogleAccount $acc, string $eventId, ?string $calendarId = null): void
 {
     $service = $this->service($acc);
-    $calendarId = $acc->calendar_id ?: 'primary';
+    $calendarId = $calendarId ?? ($acc->calendar_id ?: 'primary');
     $service->events->delete($calendarId, $eventId);
 }
 }

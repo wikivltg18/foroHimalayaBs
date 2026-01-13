@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\{TareaServicio, UserGoogleAccount, TaskCalendarEvent};
+use App\Models\{TareaServicio, UserGoogleAccount, TaskCalendarEvent, TaskCalendarBlockEvent};
 use App\Services\GoogleCalendarService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -19,14 +19,87 @@ class CreateTaskCalendarEvent implements ShouldQueue
 
     public function handle(GoogleCalendarService $svc): void
     {
-        $tarea = TareaServicio::find($this->tareaId);
-        if (!$tarea) return;
+        \Log::info("CreateTaskCalendarEvent: Job started for Tarea ID: {$this->tareaId}, User ID: {$this->userId}");
+
+        $tarea = TareaServicio::with(['bloques', 'columna.tablero'])->find($this->tareaId);
+        if (!$tarea) {
+            \Log::error("CreateTaskCalendarEvent: Tarea not found.");
+            return;
+        }
 
         $acc = UserGoogleAccount::where('user_id', $this->userId)->first();
-        if (!$acc) return;
+        if (!$acc) {
+            \Log::error("CreateTaskCalendarEvent: UserGoogleAccount not found for User ID: {$this->userId}");
+            // Esto es normal si el usuario asignado NO tiene calendario conectado.
+            // Tal vez deberíamos intentar buscar el del Superadmin si es una cuenta delegada,
+            // pero si no hay registro UserGoogleAccount, asumimos que no hay integración.
+            return;
+        }
 
-        $start = $tarea->fecha_de_entrega?->copy()->subHour() ?? now()->addMinutes(15);
-        $end   = $start->copy()->addHour();
+        // Check if it's a delegated account (placeholder)
+        if ($acc->access_token === 'SUB_ACCOUNT') {
+            // Find a valid Superadmin account to perform the action
+            // Assuming User with ID 1 is Superadmin or finding by Role
+            // Strategy: Find any user with 'Superadmin' role who has a connected Google Account
+            $superAdmin = \App\Models\User::role('Superadministrador')
+                ->whereHas('googleAccount', function($q) {
+                    $q->where('access_token', '!=', 'SUB_ACCOUNT');
+                })
+                ->with('googleAccount')
+                ->first();
+
+            if (!$superAdmin || !$superAdmin->googleAccount) {
+                \Log::error("No Superadmin with connected Google Account found to handle delegated task for user {$this->userId}");
+                return;
+            }
+
+            // Use Superadmin's credentials, but keep the original user's calendar ID
+            $effectiveAcc = $superAdmin->googleAccount;
+            $calendarId = $acc->calendar_id; // The target calendar selected in config
+        } else {
+            // Normal flow
+            $effectiveAcc = $acc;
+            $calendarId = $tarea->google_calendar_id ?? ($acc->calendar_id ?: 'primary');
+        }
+
+        // ============ ELIMINAR EVENTOS ANTIGUOS ANTES DE CREAR NUEVOS ============
+        // Esto garantiza que al actualizar no se dupliquen eventos
+        
+        // 1. Eliminar eventos de bloques antiguos
+        $oldBlockEvents = TaskCalendarBlockEvent::whereHas('bloque', function($q) use ($tarea) {
+            $q->where('tarea_id', $tarea->id);
+        })->where('user_id', $this->userId)->get();
+        
+        foreach ($oldBlockEvents as $blockEvent) {
+            try {
+                $svc->deleteEvent($effectiveAcc, $blockEvent->google_event_id, $blockEvent->calendar_id);
+            } catch (\Exception $e) {
+                \Log::warning("No se pudo eliminar evento de bloque: {$blockEvent->google_event_id}");
+            }
+            $blockEvent->delete();
+        }
+
+        // 2. Eliminar evento genérico si existe
+        $oldEvent = TaskCalendarEvent::where('tarea_id', $tarea->id)
+            ->where('user_id', $this->userId)
+            ->first();
+            
+        if ($oldEvent) {
+            try {
+                $svc->deleteEvent($effectiveAcc, $oldEvent->google_event_id, $oldEvent->calendar_id);
+            } catch (\Exception $e) {
+                \Log::warning("No se pudo eliminar evento genérico: {$oldEvent->google_event_id}");
+            }
+            $oldEvent->delete();
+        }
+        // ============ /ELIMINAR EVENTOS ANTIGUOS ============
+
+        // Generar URL completa de la tarea
+        $url = route('configuracion.servicios.tableros.show', [
+            'cliente' => $tarea->columna->tablero->cliente_id ?? '',
+            'servicio' => $tarea->columna->tablero->servicio_id ?? '',
+            'tablero' => $tarea->columna->tablero->id ?? '',
+        ]);
 
         $summary = sprintf(
             '[%s] %s',
@@ -34,25 +107,53 @@ class CreateTaskCalendarEvent implements ShouldQueue
             $tarea->titulo
         );
 
-        $url = route('configuracion.servicios.tableros.show', [
-            'cliente' => $tarea->columna->tablero->cliente_id ?? '',
-            'servicio' => $tarea->columna->tablero->servicio_id ?? '',
-            'tablero' => $tarea->columna->tablero->id ?? '',
-        ]);
-
+        // Descripción con enlace clicable y contenido de la tarea
         $desc = ($tarea->descripcion ? strip_tags($tarea->descripcion) . "\n\n" : '')
-            . "Enlace al tablero: {$url}";
+            . "Ver tarea: {$url}";
 
-        $eventId = $svc->createEvent($acc, [
-            'summary'     => $summary,
-            'description' => $desc,
-            'start'       => $start,
-            'end'         => $end,
-        ]);
+        // Obtener bloques de trabajo para este usuario
+        $bloques = $tarea->bloques()->where('user_id', $this->userId)->get();
 
-        TaskCalendarEvent::updateOrCreate(
-            ['tarea_id' => $tarea->id, 'user_id' => $this->userId],
-            ['id' => (string)Str::uuid(), 'calendar_id' => $acc->calendar_id ?: 'primary', 'google_event_id' => $eventId]
-        );
+        if ($bloques->isEmpty()) {
+            // Si no hay bloques, usar fecha de entrega o crear evento genérico
+            $start = $tarea->fecha_de_entrega?->copy()->subHour() ?? now()->addMinutes(15);
+            $end   = $start->copy()->addHours((float) $tarea->tiempo_estimado_h ?: 1);
+
+            $eventId = $svc->createEvent($effectiveAcc, [
+                'summary'     => $summary,
+                'description' => $desc,
+                'start'       => $start,
+                'end'         => $end,
+            ], $calendarId);
+
+            TaskCalendarEvent::create([
+                'id' => (string)Str::uuid(),
+                'tarea_id' => $tarea->id,
+                'user_id' => $this->userId,
+                'calendar_id' => $calendarId,
+                'google_event_id' => $eventId,
+            ]);
+        } else {
+            // Crear un evento por cada bloque de trabajo
+            foreach ($bloques as $bloque) {
+                $blockSummary = $summary . " (Bloque {$bloque->orden})";
+                
+                $eventId = $svc->createEvent($effectiveAcc, [
+                    'summary'     => $blockSummary,
+                    'description' => $desc,
+                    'start'       => $bloque->inicio,
+                    'end'         => $bloque->fin,
+                ], $calendarId);
+
+                // Asociar evento con el bloque
+                TaskCalendarBlockEvent::create([
+                    'id' => (string)Str::uuid(),
+                    'tarea_bloque_id' => $bloque->id,
+                    'user_id' => $this->userId,
+                    'calendar_id' => $calendarId,
+                    'google_event_id' => $eventId,
+                ]);
+            }
+        }
     }
 }

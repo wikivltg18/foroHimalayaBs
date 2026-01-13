@@ -71,6 +71,11 @@ class TareaServicioController extends Controller
             'descripcion'       => ['required', 'string'],
             'tiempo_estimado_h' => ['required', 'numeric', 'min:0'],
             'fecha_de_entrega'  => ['nullable', 'date', 'after_or_equal:today'],
+            // Nuevos campos opcionales para selección de horario y calendario
+            // Acepta formato ISO 8601 completo (con o sin milisegundos)
+            'selected_start_time'      => ['nullable', 'date'],
+            'selected_user_id'         => ['nullable', 'integer', 'exists:users,id'],
+            'google_calendar_id'       => ['nullable', 'string', 'max:255'],
         ]);
 
         // ========== QUILL: Sanitización mejorada ==========
@@ -114,6 +119,7 @@ class TareaServicioController extends Controller
                 'descripcion'       => $validated['descripcion'], // con URLs de draft o data:
                 'tiempo_estimado_h' => $validated['tiempo_estimado_h'],
                 'fecha_de_entrega'  => $validated['fecha_de_entrega'] ?? null,
+                'google_calendar_id' => $validated['google_calendar_id'] ?? null,
                 'posicion'          => $nextPos,
                 'archivada'         => false,
             ]);
@@ -127,6 +133,44 @@ class TareaServicioController extends Controller
                 'observacion'        => 'Creación de tarea',
             ]);
 
+            // ============ CREAR TAREA BLOQUE SI SE SELECCIONÓ HORARIO ============
+            if (!empty($validated['selected_start_time']) && !empty($validated['selected_user_id'])) {
+                try {
+                    $schedulingService = app(\App\Services\TaskSchedulingService::class);
+                    $requestedStart = Carbon::parse($validated['selected_start_time'])
+                        ->setTimezone(config('app.timezone'));
+
+                    // Este método maneja: validación de fechas pasadas, ajuste automático,
+                    // y división cuando cruza el almuerzo (12:15-13:45)
+                    $blocks = $schedulingService->createScheduledBlocks(
+                        $tarea,
+                        $validated['selected_user_id'],
+                        $requestedStart
+                    );
+
+                    // Notificar si se ajustó el horario
+                    // Notificar si se ajustó el horario
+                    if ($blocks[0]->inicio->ne($requestedStart)) {
+                        $adjustedTime = dtz($blocks[0]->inicio, 'd/m/Y H:i');
+                        session()->flash('info', 
+                            "El horario fue ajustado a {$adjustedTime} para cumplir con franjas laborales ({$displayTz})."
+                        );
+                    }
+
+                    // Notificar si se dividió en múltiples bloques
+                    if (count($blocks) > 1) {
+                        session()->flash('info',
+                            'La tarea fue dividida en ' . count($blocks) . ' bloques para respetar el horario de almuerzo.'
+                        );
+                    }
+
+                } catch (\InvalidArgumentException $e) {
+                    return back()->withErrors(['selected_start_time' => $e->getMessage()])
+                        ->withInput();
+                }
+            }
+            // ============ /CREAR TAREA BLOQUE ============
+
             return $tarea;
         });
 
@@ -136,13 +180,20 @@ class TareaServicioController extends Controller
             $tarea->update(['descripcion' => $descripcionNueva]);
         }
 
-                $tarea->loadMissing('area', 'columna.tablero.cliente');
+        $tarea->loadMissing('area', 'columna.tablero.cliente');
 
         $user = User::find($validated['usuario_id']);
         if ($user) {
             $user->notify(new NotificacionAsignacionTarea($tarea));
-
         }
+
+        // ============ CREAR EVENTO EN GOOGLE CALENDAR ============
+        // Disparar job para crear evento en Google Calendar si hay colaborador asignado
+        if ($validated['usuario_id']) {
+            dispatch(new \App\Jobs\CreateTaskCalendarEvent($tarea->id, (int)$validated['usuario_id']))
+                ->onQueue('calendar');
+        }
+        // ============ /CREAR EVENTO EN GOOGLE CALENDAR ============
 
 
         return redirect()->route('configuracion.servicios.tableros.show', [
@@ -379,6 +430,9 @@ class TareaServicioController extends Controller
             $tarea->usuarios->contains(fn ($u) => (int) $u->id === (int) auth()->id());
     }
 
+    // Cargar bloques ordenados para la vista
+    $bloques = $tarea->bloques()->with('user')->orderBy('orden')->get();
+
     return view('configuracion.servicios.tareas.show', [
         'cliente' => $cliente,
         'servicio' => $servicio,
@@ -387,6 +441,7 @@ class TareaServicioController extends Controller
         'tarea'    => $tarea,
         'estados'=> $estados,
         'puedeBorrarComentarios' => $puedeBorrarComentarios,
+        'bloques' => $bloques,
     ]);
 }
 
@@ -458,7 +513,10 @@ public function edit(
     $estados = EstadoTarea::orderBy('nombre')->get();
 
     // Cargar relaciones mínimas para mostrar info en cabecera si quieres
-    $tarea->load(['estado', 'area', 'usuario']);
+    $tarea->load(['estado', 'area', 'usuario', 'bloques']);
+
+    // Obtener el primer bloque programado (si existe) para prellenar campos
+    $primerBloque = $tarea->bloques()->orderBy('orden')->first();
 
     return view('configuracion.servicios.tareas.edit', compact(
         'areas',
@@ -467,7 +525,8 @@ public function edit(
         'servicio',
         'tablero',
         'columna',
-        'tarea'
+        'tarea',
+        'primerBloque'
     ));
 }
 
@@ -494,6 +553,11 @@ public function update(
             'descripcion'       => ['required', 'string'],
             'tiempo_estimado_h' => ['required', 'numeric', 'min:0'],
             'fecha_de_entrega'  => ['nullable', 'date'],
+            // Campos de calendario y programación
+            // Acepta formato ISO 8601 completo (con o sin milisegundos)
+            'selected_start_time'      => ['nullable', 'date'],
+            'selected_user_id'         => ['nullable', 'integer', 'exists:users,id'],
+            'google_calendar_id'       => ['nullable', 'string', 'max:255'],
         ]);
 
         // Sanitizar Quill
@@ -532,7 +596,7 @@ public function update(
         // Si NO quieres reapertura automática por cambio de estado, deja en false:
         $reaperturaPorEstado = $eraFinal && !in_array($nuevoEstado, EstadoTarea::finalIds(), true);
 
-        DB::transaction(function () use ($tarea, $validated, $estadoAnterior, $nuevoEstado, $solicitaReactivar, $reaperturaPorEstado) {
+        DB::transaction(function () use ($tarea, $validated, $estadoAnterior, $nuevoEstado, $solicitaReactivar, $reaperturaPorEstado, $request) {
             // 1) Actualiza campos base
             $tarea->update([
                 'estado_id'         => $nuevoEstado,
@@ -542,7 +606,48 @@ public function update(
                 'descripcion'       => $validated['descripcion'],
                 'tiempo_estimado_h' => $validated['tiempo_estimado_h'],
                 'fecha_de_entrega'  => $validated['fecha_de_entrega'] ?? null,
+                'google_calendar_id' => $validated['google_calendar_id'] ?? $tarea->google_calendar_id,
             ]);
+
+            // ============ ACTUALIZAR BLOQUES SI HAY NUEVA PROGRAMACIÓN ============
+            if (!empty($validated['selected_start_time']) && !empty($validated['selected_user_id'])) {
+                // Eliminar bloques antiguos de este usuario
+                \App\Models\TareaBloque::where('tarea_id', $tarea->id)
+                    ->where('user_id', $validated['selected_user_id'])
+                    ->delete();
+
+                // Crear nuevos bloques usando el servicio
+                try {
+                    $schedulingService = app(\App\Services\TaskSchedulingService::class);
+                    $requestedStart = Carbon::parse($validated['selected_start_time'])
+                        ->setTimezone(config('app.timezone'));
+
+                    $blocks = $schedulingService->createScheduledBlocks(
+                        $tarea->fresh(), // Necesitamos la tarea actualizada
+                        $validated['selected_user_id'],
+                        $requestedStart
+                    );
+
+                    // Notificar ajustes
+                    if ($blocks[0]->inicio->ne($requestedStart)) {
+                        $adjustedTime = $blocks[0]->inicio->format('d/m/Y H:i');
+                        session()->flash('info', 
+                            "El horario fue ajustado a {$adjustedTime} para cumplir con franjas laborales."
+                        );
+                    }
+
+                    if (count($blocks) > 1) {
+                        session()->flash('info',
+                            'La tarea fue dividida en ' . count($blocks) . ' bloques para respetar el horario de almuerzo.'
+                        );
+                    }
+
+                } catch (\InvalidArgumentException $e) {
+                    // No hacer rollback de la transacción, solo notificar
+                    session()->flash('error', 'Error en programación: ' . $e->getMessage());
+                }
+            }
+            // ============ /ACTUALIZAR BLOQUES ============
 
             // 2) Historial si cambió el estado
             if ($estadoAnterior !== $nuevoEstado) {
@@ -607,6 +712,17 @@ if ($solicitaReactivar || $reaperturaPorEstado) {
         $asignado->notify(new NotificacionAsignacionTarea($tarea));
     }
 }
+
+// ============ ACTUALIZAR EVENTO EN GOOGLE CALENDAR ============
+// Si se actualizó el calendario o se reprogramó, disparar job para actualizar Google Calendar
+if ($tarea->usuario_id && (
+    !empty($validated['selected_start_time']) || 
+    !empty($validated['google_calendar_id'])
+)) {
+    dispatch(new \App\Jobs\CreateTaskCalendarEvent($tarea->id, (int)$tarea->usuario_id))
+        ->onQueue('calendar');
+}
+// ============ /ACTUALIZAR EVENTO EN GOOGLE CALENDAR ============
 
 
 

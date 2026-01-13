@@ -13,9 +13,9 @@ class GoogleOAuthController extends Controller
     private function client(): \Google_Client
 {
     $c = new \Google_Client();
-    $c->setClientId(env('GOOGLE_CLIENT_ID'));
-    $c->setClientSecret(env('GOOGLE_CLIENT_SECRET'));
-    $c->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
+    $c->setClientId(config('services.google.client_id'));
+    $c->setClientSecret(config('services.google.client_secret'));
+    $c->setRedirectUri(config('services.google.redirect_uri'));
     $c->setAccessType('offline'); // para refresh_token
     $c->setIncludeGrantedScopes(true);
     $c->setPrompt('consent select_account'); // fuerza consentimiento y selección de cuenta
@@ -37,14 +37,14 @@ public function redirect()
         Log::info('Forcing GOOGLE_FORCE_REDIRECT_URI: ' . $force);
     } else {
         $client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
-        Log::info('Forcing GOOGLE_REDIRECT_URI: ' . env('GOOGLE_REDIRECT_URI'));
+        Log::info('Forcing GOOGLE_REDIRECT_URI: ' . config('services.google.redirect_uri'));
     }
 
     $authUrl = $client->createAuthUrl();
 
     // Registrar la URL de autorización para verificar el redirect_uri que genera la app
     Log::info('Google OAuth URL: ' . $authUrl);
-    Log::info('Using GOOGLE_REDIRECT_URI: ' . env('GOOGLE_REDIRECT_URI'));
+    Log::info('Using GOOGLE_REDIRECT_URI: ' . config('services.google.redirect_uri'));
 
     return redirect($authUrl);
 }

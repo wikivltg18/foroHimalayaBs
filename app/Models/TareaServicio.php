@@ -33,6 +33,7 @@ class TareaServicio extends Model
         'descripcion',
         'tiempo_estimado_h',
         'fecha_de_entrega',
+        'google_calendar_id',
         'posicion',
         'finalizada_at',
         'finalizada_por',
