@@ -134,6 +134,15 @@
                                             </li>
                                             <!-- Submenús: Tipos de servicios, Fases de servicios -->
 
+                                            <!-- Opción: Calendario de equipo -->
+                                            <li class="dropdown">
+                                                <a href="{{ url('/google/calendars') }}"
+                                                    class="dropdown-toggle no-arrow text-muted text-decoration-none">
+                                                    <span
+                                                        class="micon me-2 icon-wrench-alt-1"></span><span>Calendario</span>
+                                                </a>
+                                            </li>
+
                                             <!-- Opción: Permisos -->
                                             <li class="dropdown">
                                                 <a href="{{ url('/permisos') }}"

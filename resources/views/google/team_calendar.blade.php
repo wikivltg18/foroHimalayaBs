@@ -6,7 +6,7 @@
     </x-slot>
 
     <x-slot name="titulo">
-        Calendario de Equipo (Solo Lectura)
+        Calendario de Equipo
     </x-slot>
 
     <x-slot name="slot">
