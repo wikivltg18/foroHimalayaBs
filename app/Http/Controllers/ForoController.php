@@ -12,14 +12,35 @@ class ForoController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
+
+        // Validación de parámetros
+        $validated = $request->validate([
+            'cantidad' => 'integer|min:1|max:100',
+            'search'   => 'nullable|string|max:255',
+            'area_id'  => 'nullable|exists:areas,id',
+        ]);
+
+        $cantidad = $validated['cantidad'] ?? 5;
+
+        // Determinar el área a filtrar
+        $areaId = $user->id_area;
+        if ($user->hasRole(['Administrador', 'Superadministrador']) && !empty($validated['area_id'])) {
+            $areaId = $validated['area_id'];
+        }
+
+        // Obtener el nombre del área para el título
+        $areaActual = \App\Models\Area::find($areaId);
+        $areaNombre = $areaActual->nombre ?? 'Sin área';
+
+        // Construcción de la consulta
         $query = TareaServicio::query()
             ->with(['columna.tablero.cliente', 'estado', 'area', 'usuario'])
-            ->where('area_id', $user->id_area)
+            ->where('area_id', $areaId)
             ->where('usuario_id', $user->id);
 
-        // Filtros de búsqueda
-        if ($request->filled('search')) {
-            $search = $request->input('search');
+        // Filtro de búsqueda
+        if (!empty($validated['search'])) {
+            $search = $validated['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('titulo', 'LIKE', "%{$search}%")
                   ->orWhereHas('columna.tablero.cliente', function ($cq) use ($search) {
@@ -28,56 +49,12 @@ class ForoController extends Controller
             });
         }
 
-        $tareas = $query->latest()->paginate(10);
+        // Paginación con persistencia de filtros
+        $tareas = $query->latest()->paginate($cantidad)->appends($request->query());
 
-        return view('foro.index', compact('tareas'));
+        $areaNombre = $user->area->nombre ?? 'Sin área';
+
+        return view('foro.index', compact('tareas', 'areaNombre'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
 }
