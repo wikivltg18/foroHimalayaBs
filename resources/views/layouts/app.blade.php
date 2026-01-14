@@ -91,18 +91,18 @@
                                                         class="micon me-2 icon-Foro-1"></span>Foro</a>
                                                 <!-- Submenús: Áreas, Servicios, Roles -->
                                                 <ul class="submenu">
-                                                    <li><a href="{{ url('/dashboard') }}"
+                                                    <li><a href="{{ url('/foro') }}"
                                                             class="text-muted text-decoration-none">Diseño</a></li>
-                                                    <li><a href="{{ url('/dashboard') }}"
+                                                    <li><a href="{{ url('/foro') }}"
                                                             class="text-muted text-decoration-none">Contenido</a></li>
-                                                    <li><a href="{{ url('/dashboard') }}"
+                                                    <li><a href="{{ url('/foro') }}"
                                                             class="text-muted text-decoration-none">Digital
                                                             Performance</a></li>
-                                                    <li><a href="{{ url('/dashboard') }}"
+                                                    <li><a href="{{ url('/foro') }}"
                                                             class="text-muted text-decoration-none">Desarrollo</a></li>
-                                                    <li><a href="{{ url('/dashboard') }}"
+                                                    <li><a href="{{ url('/foro') }}"
                                                             class="text-muted text-decoration-none">Creatividad</a></li>
-                                                    <li><a href="{{ url('/dashboard') }}"
+                                                    <li><a href="{{ url('/foro') }}"
                                                             class="text-muted text-decoration-none">Estraregia</a></li>
                                                 </ul>
                                             </li>

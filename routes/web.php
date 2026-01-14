@@ -10,6 +10,7 @@ use App\Http\Controllers\ClienteController;
 use App\Http\Controllers\GeneralController;
 use App\Http\Controllers\PermisoController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ForoController;
 use App\Http\Controllers\ModalidadController;
 use App\Http\Controllers\GoogleOAuthController;
 use App\Http\Controllers\HerramientaController;
@@ -36,6 +37,12 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+
+//__/FORO/__//
+
+Route::middleware(['auth'])
+    ->get('/foro', [ForoController::class, 'index'])
+    ->name('foro.index');
 
 //__/ÁREAS/__//
 
