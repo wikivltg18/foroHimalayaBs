@@ -25,6 +25,11 @@ class Servicio extends Model
         'tipo_servicio_id'
     ];
 
+    public function tableros(): HasMany
+    {
+        return $this->hasMany(TableroServicio::class, 'servicio_id');
+    }
+
     public function cliente(): BelongsTo
     {
         return $this->belongsTo(Cliente::class, 'cliente_id');
