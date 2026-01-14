@@ -52,7 +52,6 @@
         @php
             $horasReales = $tarea->timeLogs->sum('duracion_h');
             $creado  = dtz($tarea->created_at, 'd/m/Y g:i a');
-            $entrega = dtz($tarea->fecha_de_entrega, 'd/m/Y');
 
             $estadoNombre = optional($tarea->estado)->nombre ?? '—';
             $estadoClass = match (mb_strtolower($estadoNombre)) {
@@ -102,7 +101,7 @@
                     </div>
                     <div class="col-md-4">
                         <div class="text-muted small">Fecha de entrega:</div>
-                        <div class="ps-4 mt-2">{{ $entrega ?? '—' }}</div>
+                        <div class="ps-4 mt-2">{{ $tarea->fecha_de_entrega ? $tarea->fecha_de_entrega->format('d/m/Y') : 'N/A' }}</div>
                     </div>
                 </div>
 

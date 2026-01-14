@@ -206,8 +206,8 @@
             @endforeach
         </ul>
 
-        <div class="d-flex justify-content-center">
-            {{ $all->links() }}
+        <div class="d-flex justify-content-end">
+            {{ $all->links('pagination::bootstrap-4') }}
         </div>
     </div>
 </x-app-layout>
