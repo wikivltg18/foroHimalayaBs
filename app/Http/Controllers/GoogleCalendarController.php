@@ -146,12 +146,25 @@ class GoogleCalendarController extends Controller
     }
 
     /**
-     * Obtener calendarios del usuario autenticado (JSON)
+     * Obtener calendarios de un usuario específico o del autenticado (JSON)
      * Retorna: [{ id, summary, primary, calendar_id (default) }]
      */
-    public function getUserCalendars()
+    public function getUserCalendars(Request $request)
     {
-        $acc = $this->account();
+        $userId = $request->query('user_id', auth()->id());
+        $currentUser = auth()->user();
+
+        // Seguridad: si se pide otro usuario, debe ser Superadministrador
+        if ($userId != $currentUser->id && !$currentUser->hasRole('Superadministrador')) {
+            return response()->json([
+                'connected' => false,
+                'message'   => 'No tienes permiso para ver los calendarios de este usuario',
+                'calendars' => [],
+            ], 403);
+        }
+
+        $acc = UserGoogleAccount::where('user_id', $userId)->first();
+        
         if (!$acc) {
             return response()->json([
                 'connected' => false,
@@ -161,16 +174,31 @@ class GoogleCalendarController extends Controller
         }
 
         try {
-            $calendars = $this->gcal->listCalendars($acc);
+            // Si es Superadmin consultando una cuenta delegada, usamos la cuenta del Superadmin
+            // pero el calendar_id del usuario objetivo. 
+            // NOTA: listCalendars necesita una cuenta vinculada real para listar.
+            // Si el colaborador NO tiene cuenta propia, listaremos los del Superadmin
+            // para permitirle elegir uno para el colaborador.
+            $tokenAcc = ($acc->access_token === 'SUB_ACCOUNT') ? $this->account() : $acc;
+            
+            if (!$tokenAcc) {
+                return response()->json([
+                    'connected' => false,
+                    'message'   => 'No hay una cuenta de administrador vinculada para gestionar este calendario',
+                    'calendars' => [],
+                ]);
+            }
+
+            $calendars = $this->gcal->listCalendars($tokenAcc);
             
             return response()->json([
-                'connected'       => true,
+                'connected'        => true,
                 'default_calendar' => $acc->calendar_id ?? 'primary',
-                'calendars'       => $calendars,
+                'calendars'        => $calendars,
             ]);
         } catch (\Exception $e) {
             \Log::error('Error obteniendo calendarios del usuario', [
-                'user_id' => auth()->id(),
+                'user_id' => $userId,
                 'error'   => $e->getMessage(),
             ]);
 

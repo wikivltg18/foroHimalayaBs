@@ -44,7 +44,13 @@ export function initializeTaskCalendar() {
      */
     async function loadUserCalendars() {
         try {
-            const response = await fetch('/ajax/google/calendars', {
+            const usuarioId = document.getElementById('usuario_id')?.value;
+            let url = '/ajax/google/calendars';
+            if (usuarioId) {
+                url += `?user_id=${usuarioId}`;
+            }
+
+            const response = await fetch(url, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
 
@@ -65,16 +71,15 @@ export function initializeTaskCalendar() {
         const container = document.getElementById('googleCalendarSelection');
         if (!container) return;
 
+        // Resetear input oculto si no hay conexión
         if (!data.connected) {
+            document.getElementById('selectedGoogleCalendar').value = 'primary';
+
             container.innerHTML = `
                 <div class="alert alert-warning mb-3">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Google Calendar no conectado</strong>
-                    <p class="mb-0 mt-2">
-                        <a href="/google/calendars" class="alert-link">
-                            Conecta tu cuenta de Google Calendar aquí
-                        </a>
-                    </p>
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Cuenta no vinculada</strong>
+                    <p class="mb-0 mt-2">El usuario seleccionado no cuenta con una cuenta autenticada de google.</p>
                 </div>
             `;
             return;
@@ -85,12 +90,10 @@ export function initializeTaskCalendar() {
         let selectedCalendar = data.default_calendar || 'primary';
 
         if (usuarioSelect && usuarioSelect.value) {
-            // Obtener email del colaborador seleccionado
             const selectedOption = usuarioSelect.options[usuarioSelect.selectedIndex];
             const userEmail = selectedOption?.dataset?.email;
 
             if (userEmail) {
-                // Buscar calendario que coincida con el email
                 const matchingCalendar = data.calendars.find(cal =>
                     cal.id.toLowerCase() === userEmail.toLowerCase() ||
                     cal.summary.toLowerCase().includes(userEmail.toLowerCase())
@@ -98,45 +101,36 @@ export function initializeTaskCalendar() {
 
                 if (matchingCalendar) {
                     selectedCalendar = matchingCalendar.id;
-                    console.log('[Calendar] Auto-seleccionado calendario:', matchingCalendar.summary, 'para usuario:', userEmail);
                 }
             }
         }
 
         const calendarOptions = data.calendars
             .map(cal => `
-                <option value="${cal.id}" data-primary="${cal.primary ? 'true' : 'false'}" 
-                        ${selectedCalendar === cal.id ? 'selected' : ''}>
-                    ${cal.summary}
-                    ${cal.primary ? ' (Principal)' : ''}
-                    ${cal.description ? ` - ${cal.description}` : ''}
+                <option value="${cal.id}" ${selectedCalendar === cal.id ? 'selected' : ''}>
+                    ${cal.summary} ${cal.primary ? ' (Principal)' : ''}
                 </option>
             `)
             .join('');
 
         container.innerHTML = `
             <label class="form-label fw-bold">
-                <i class="bi bi-calendar-check me-2"></i>Calendario de Google
+                <i class="bi bi-calendar-check me-2"></i>Calendario de Google del colaborador
             </label>
             <select class="form-select mb-3" id="googleCalendarSelect">
-                <option disabled>Seleccionar calendario...</option>
+                <option value="primary">Calendario Principal (primary)</option>
                 ${calendarOptions}
             </select>
-            <small class="text-muted">
-                Selecciona en qué calendario de Google se sincronizará el evento
-            </small>
         `;
 
-        // Guardar selección en input oculto
-        document.getElementById('googleCalendarSelect')?.addEventListener('change', (e) => {
+        // Al cambiar el select dinámico, actualizamos el input oculto
+        const dynamicSelect = document.getElementById('googleCalendarSelect');
+        dynamicSelect?.addEventListener('change', (e) => {
             document.getElementById('selectedGoogleCalendar').value = e.target.value;
         });
 
-        // Establecer valores iniciales
+        // Valor inicial
         document.getElementById('selectedGoogleCalendar').value = selectedCalendar;
-        if (document.getElementById('googleCalendarSelect')) {
-            document.getElementById('googleCalendarSelect').value = selectedCalendar;
-        }
     }
 
     /**

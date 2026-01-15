@@ -123,9 +123,6 @@
             <div class="row mt-4">
                 <div class="col-md-12">
                     <div id="googleCalendarSelection" class="mb-3"></div>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-save me-2"></i>Guardar selección
-                    </button>
                 </div>
             </div>
 
@@ -229,6 +226,7 @@
                     const opt = document.createElement('option');
                     opt.value = u.id;
                     opt.textContent = u.name;
+                    opt.dataset.email = u.email; // Guardamos el email para auto-selección de calendario
                     if (preselectedId && String(preselectedId) === String(u.id)) opt.selected = true;
                     usuarioSelect.appendChild(opt);
                 });
