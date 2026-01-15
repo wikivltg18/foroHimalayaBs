@@ -38,6 +38,7 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+//__/CONSUMOS/__//
 
 Route::middleware(['auth'])
     ->get('/servicios/{servicio}/consolidado', [ConsolidadoController::class, 'index'])

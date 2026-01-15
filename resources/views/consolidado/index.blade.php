@@ -4,7 +4,7 @@
     </x-slot>
 
     @push('styles')
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" />
+    <link rel="stylesheet" href="{{ asset('vendor/litepicker/css/litepicker.css') }}" />
     <style>
         .dashboard {
             background: #fff;
@@ -66,8 +66,10 @@
         }
 
         .metric-card strong {
-            display: block;
+            display: flex;
             font-size: 24px;
+            justify-content: center;
+            align-items: center;
         }
 
         .bg-green { background: #2e7d32; }
@@ -194,7 +196,7 @@
             </div>
             <div class="metric-card bg-blue">
                 <small>% Ejecución</small>
-                <strong>{{ round($totalPorcentaje, 1) }}%</strong>
+                <strong>{{ number_format($totalPorcentaje, 2) }}%</strong>
             </div>
         </div>
 
@@ -243,8 +245,8 @@
     </div>
 
     @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/litepicker.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/plugins/ranges.js"></script>
+    <script src="{{ asset('vendor/litepicker/js/litepicker.js') }}"></script>
+    <script src="{{ asset('vendor/litepicker/plugins/ranges.js') }}"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const picker = new Litepicker({
