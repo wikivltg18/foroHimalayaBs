@@ -211,7 +211,7 @@ class GoogleCalendarController extends Controller
     }
     /**
      * Vista de solo lectura del calendario del equipo.
-     * Muestra eventos de todos los colaboradores (reutilizando agenda.events).
+     * Muestra eventos de todos los colaboradores (reutilizando google.events).
      */
     public function viewTeamCalendar()
     {

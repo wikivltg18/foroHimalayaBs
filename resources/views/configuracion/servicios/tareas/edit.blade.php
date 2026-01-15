@@ -230,6 +230,7 @@
                     const opt = document.createElement('option');
                     opt.value = u.id;
                     opt.textContent = u.name;
+                    opt.dataset.email = u.email; // Guardamos el email para auto-selección de calendario
                     if (preselectedId && String(preselectedId) === String(u.id)) opt.selected = true;
                     usuarioSelect.appendChild(opt);
                 });
@@ -304,8 +305,8 @@
     {{-- Modal de Calendario --}}
     <x-calendar-modal 
         :modalId="'taskCalendarModal'"
-        :eventsUrl="route('agenda.events')"
-        :resourcesUrl="route('agenda.resources')"
+        :eventsUrl="route('google.events')"
+        :resourcesUrl="route('google.resources')"
         :onSelectCallback="'onTaskCalendarSelect'"
     />
 
