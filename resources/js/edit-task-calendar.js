@@ -40,11 +40,17 @@ export function initializeEditTaskCalendar() {
     }
 
     /**
-     * Cargar calendarios del usuario autenticado
+     * Cargar calendarios del usuario autenticado o del colaborador seleccionado
      */
     async function loadUserCalendars() {
         try {
-            const response = await fetch('/ajax/google/calendars', {
+            const usuarioId = document.getElementById('usuario_id')?.value;
+            let url = '/ajax/google/calendars';
+            if (usuarioId) {
+                url += `?user_id=${usuarioId}`;
+            }
+
+            const response = await fetch(url, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
 
@@ -65,27 +71,26 @@ export function initializeEditTaskCalendar() {
         const container = document.getElementById('googleCalendarSelection');
         if (!container) return;
 
+        // Resetear input oculto si no hay conexión
         if (!data.connected) {
+            // Nota: No reseteamos a 'primary' forzosamente si ya hay un valor previo en edición,
+            // pero mostramos la alerta de desconexión.
             container.innerHTML = `
                 <div class="alert alert-warning mb-3">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Google Calendar no conectado</strong>
-                    <p class="mb-0 mt-2">
-                        <a href="/google/calendars" class="alert-link">
-                            Conecta tu cuenta de Google Calendar aquí
-                        </a>
-                    </p>
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Cuenta no vinculada</strong>
+                    <p class="mb-0 mt-2">El usuario seleccionado no cuenta con una cuenta autenticada de google.</p>
                 </div>
             `;
             return;
         }
 
-        // Obtener calendario actualmente seleccionado desde el input oculto
+        // Obtener calendario actualmente seleccionado desde el input oculto (importante en edición)
         let selectedCalendar = document.getElementById('selectedGoogleCalendar')?.value || data.default_calendar || 'primary';
 
-        // Intentar auto-seleccionar calendario basándose en email del colaborador
+        // Intentar auto-seleccionar calendario basándose en email del colaborador (si no hay uno guardado)
         const usuarioSelect = document.getElementById('usuario_id');
-        if (usuarioSelect && usuarioSelect.value) {
+        if (usuarioSelect && usuarioSelect.value && !document.getElementById('selectedGoogleCalendar')?.value) {
             const selectedOption = usuarioSelect.options[usuarioSelect.selectedIndex];
             const userEmail = selectedOption?.dataset?.email;
 
@@ -97,45 +102,37 @@ export function initializeEditTaskCalendar() {
 
                 if (matchingCalendar) {
                     selectedCalendar = matchingCalendar.id;
-                    console.log('[EditCalendar] Auto-seleccionado calendario:', matchingCalendar.summary, 'para usuario:', userEmail);
+                    console.log('[EditCalendar] Auto-seleccionado calendario:', matchingCalendar.summary);
                 }
             }
         }
 
         const calendarOptions = data.calendars
             .map(cal => `
-                <option value="${cal.id}" data-primary="${cal.primary ? 'true' : 'false'}" 
-                        ${selectedCalendar === cal.id ? 'selected' : ''}>
-                    ${cal.summary}
-                    ${cal.primary ? ' (Principal)' : ''}
-                    ${cal.description ? ` - ${cal.description}` : ''}
+                <option value="${cal.id}" ${selectedCalendar === cal.id ? 'selected' : ''}>
+                    ${cal.summary} ${cal.primary ? ' (Principal)' : ''}
                 </option>
             `)
             .join('');
 
         container.innerHTML = `
             <label class="form-label fw-bold">
-                <i class="bi bi-calendar-check me-2"></i>Calendario de Google
+                <i class="bi bi-calendar-check me-2"></i>Calendario de Google del colaborador
             </label>
             <select class="form-select mb-3" id="googleCalendarSelect">
-                <option disabled>Seleccionar calendario...</option>
+                <option value="primary">Calendario Principal (primary)</option>
                 ${calendarOptions}
             </select>
-            <small class="text-muted">
-                Selecciona en qué calendario de Google se sincronizará el evento
-            </small>
         `;
 
-        // Guardar selección en input oculto
-        document.getElementById('googleCalendarSelect')?.addEventListener('change', (e) => {
+        // Al cambiar el select dinámico, actualizamos el input oculto
+        const dynamicSelect = document.getElementById('googleCalendarSelect');
+        dynamicSelect?.addEventListener('change', (e) => {
             document.getElementById('selectedGoogleCalendar').value = e.target.value;
         });
 
-        // Establecer valores
+        // Establecer valor inicial
         document.getElementById('selectedGoogleCalendar').value = selectedCalendar;
-        if (document.getElementById('googleCalendarSelect')) {
-            document.getElementById('googleCalendarSelect').value = selectedCalendar;
-        }
     }
 
     /**
@@ -194,17 +191,97 @@ export function initializeEditTaskCalendar() {
         elements.selectedTimeDisplay.style.display = 'block';
     }
 
+    // === LÓGICA DE BLOQUES DE TRABAJO ===
+    const workBlocks = [
+        { start: "08:00", end: "12:15" },
+        { start: "13:45", end: "18:00" }
+    ];
+
+    function addMinutes(date, minutes) {
+        return new Date(date.getTime() + minutes * 60000);
+    }
+
+    function getNextWorkDay(date) {
+        let next = new Date(date);
+        next.setDate(next.getDate() + 1);
+        if (next.getDay() === 6) next.setDate(next.getDate() + 2); // Sábado -> Lunes
+        if (next.getDay() === 0) next.setDate(next.getDate() + 1); // Domingo -> Lunes
+        return next;
+    }
+
+    function createSplitEvents(startDate, durationMinutes) {
+        let events = [];
+        let remaining = durationMinutes;
+        let currentDate = new Date(startDate);
+
+        if (currentDate.getDay() === 6) currentDate.setDate(currentDate.getDate() + 2);
+        if (currentDate.getDay() === 0) currentDate.setDate(currentDate.getDate() + 1);
+
+        let safetyCounter = 0;
+        while (remaining > 0 && safetyCounter < 365) {
+            for (let block of workBlocks) {
+                if (remaining <= 0) break;
+
+                let blockStart = new Date(currentDate);
+                let [hStart, mStart] = block.start.split(":").map(Number);
+                blockStart.setHours(hStart, mStart, 0, 0);
+
+                let blockEnd = new Date(currentDate);
+                let [hEnd, mEnd] = block.end.split(":").map(Number);
+                blockEnd.setHours(hEnd, mEnd, 0, 0);
+
+                if (currentDate > blockEnd) continue;
+
+                let effectiveStart = (currentDate > blockStart) ? new Date(currentDate) : blockStart;
+                let blockDuration = (blockEnd - effectiveStart) / 60000;
+
+                if (blockDuration <= 0) continue;
+
+                if (remaining <= blockDuration) {
+                    events.push({
+                        start: effectiveStart,
+                        end: addMinutes(effectiveStart, remaining)
+                    });
+                    remaining = 0;
+                } else {
+                    events.push({
+                        start: effectiveStart,
+                        end: blockEnd
+                    });
+                    remaining -= blockDuration;
+                }
+            }
+
+            if (remaining > 0) {
+                currentDate = getNextWorkDay(currentDate);
+                let [hFirst, mFirst] = workBlocks[0].start.split(":").map(Number);
+                currentDate.setHours(hFirst, mFirst, 0, 0);
+            }
+            safetyCounter++;
+        }
+        return events;
+    }
+
     /**
      * Callback cuando se selecciona un slot en el calendario
      */
     window.onTaskCalendarSelect = function (data) {
-        const tiempoEstimado = parseFloat(elements.tiempoEstimadoInput.value) || 1;
-
-        // Parsear fecha-hora ISO
+        const tiempoEstimadoH = parseFloat(elements.tiempoEstimadoInput.value) || 1;
+        const tiempoEstimadoMin = tiempoEstimadoH * 60;
         const start = new Date(data.startStr);
-        const end = new Date(start.getTime() + tiempoEstimado * 60 * 60 * 1000);
 
-        // Guardar selección con formato correcto
+        // Generar proyección de bloques
+        const projectedBlocks = createSplitEvents(start, tiempoEstimadoMin);
+
+        if (projectedBlocks.length === 0) {
+            showNotification('❌ No se pudo programar en este horario.', 'danger');
+            return;
+        }
+
+        const realStart = projectedBlocks[0].start;
+        const realEnd = projectedBlocks[projectedBlocks.length - 1].end;
+
+        // Guardar selección
         if (elements.selectedStartTimeInput) {
             elements.selectedStartTimeInput.value = start.toISOString();
         }
@@ -213,12 +290,14 @@ export function initializeEditTaskCalendar() {
         }
 
         // Mostrar confirmación visual
-        displaySelectedTime(start, end);
+        displaySelectedTime(realStart, realEnd);
 
-        showNotification(
-            `✅ Horario seleccionado: ${start.toLocaleTimeString('es-ES')} - ${end.toLocaleTimeString('es-ES')}`,
-            'success'
-        );
+        let msg = `✅ Horario: ${realStart.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${realEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        if (projectedBlocks.length > 1) {
+            msg += `<br> <small>(Dividido en ${projectedBlocks.length} bloques por pausas/días)</small>`;
+        }
+
+        showNotification(msg, 'success');
 
         // Cerrar modal
         if (elements.calendarModal) {
@@ -243,7 +322,6 @@ export function initializeEditTaskCalendar() {
         if (container) {
             container.insertBefore(alertDiv, container.firstChild);
 
-            // Auto-dismiss después de 5 segundos
             setTimeout(() => {
                 const bsAlert = new bootstrap.Alert(alertDiv);
                 bsAlert.close();
@@ -258,7 +336,6 @@ export function initializeEditTaskCalendar() {
         elements.usuarioSelect.addEventListener('change', (e) => {
             console.log('[EditCalendar] Usuario seleccionado:', e.target.value);
             updateCalendarButton();
-            // Recargar calendarios para auto-seleccionar el del colaborador
             loadUserCalendars();
         });
     }
@@ -291,13 +368,14 @@ export function initializeEditTaskCalendar() {
     loadUserCalendars();
     updateCalendarButton();
 
-    // Si hay horario ya seleccionado, mostrarlo
+    // Si hay horario ya seleccionado, mostrarlo usando la lógica de bloques
     const existingStartTime = elements.selectedStartTimeInput?.value;
     if (existingStartTime) {
-        const tiempoEstimado = parseFloat(elements.tiempoEstimadoInput?.value) || 1;
-        const start = new Date(existingStartTime);
-        const end = new Date(start.getTime() + tiempoEstimado * 60 * 60 * 1000);
-        displaySelectedTime(start, end);
+        const tiempoEstimadoH = parseFloat(elements.tiempoEstimadoInput?.value) || 1;
+        const projected = createSplitEvents(new Date(existingStartTime), tiempoEstimadoH * 60);
+        if (projected.length > 0) {
+            displaySelectedTime(projected[0].start, projected[projected.length - 1].end);
+        }
     }
 
     console.log('[EditCalendar] ✅ Inicialización completada');

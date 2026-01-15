@@ -469,7 +469,7 @@ class TareaServicioController extends Controller
         }
 
         // Devuelve los usuarios de esa área
-        $users = $area->usuarios()->select('id', 'name')->orderBy('name')->get();
+        $users = $area->usuarios()->select('users.id', 'users.name', 'users.email')->orderBy('name')->get();
 
         return response()->json($users);
     }
