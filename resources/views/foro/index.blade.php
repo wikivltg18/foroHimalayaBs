@@ -1,6 +1,6 @@
 <x-app-layout>
     <x-slot name="titulo">
-        Foro de Tareas
+        {{ $areaNombre }}
     </x-slot>
 
     <div class="container-fluid">
@@ -8,15 +8,29 @@
         <div class="row mb-4">
             <div class="col-md-12">
                 <form action="{{ route('foro.index') }}" method="GET" class="d-flex">
+                    @if(request('area_id'))
+                        <input type="hidden" name="area_id" value="{{ request('area_id') }}">
+                    @endif
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0">
                             <i class="bi bi-search text-muted"></i>
                         </span>
-                        <input type="text" name="search" class="form-control border-start-0 ps-0" 
-                               placeholder="Buscar por nombre de tarea o cliente..." 
+                        <input type="text" name="search" class="form-control border-start-0 ps-0"
+                               placeholder="Buscar por nombre de tarea o cliente..."
                                value="{{ request('search') }}">
                         <button class="btn btn-primary" type="submit">Buscar</button>
                     </div>
+
+                    <!-- Selector de cantidad -->
+                    <select name="cantidad" class="form-select ms-2" style="max-width: 100px;"
+                            onchange="this.form.submit()">
+                        @foreach([5,10,25,50,100] as $size)
+                            <option value="{{ $size }}" {{ request('cantidad', 5) == $size ? 'selected' : '' }}>
+                                {{ $size }}
+                            </option>
+                        @endforeach
+                    </select>
+
                     @if(request('search'))
                         <a href="{{ route('foro.index') }}" class="btn btn-outline-secondary ms-2">Limpiar</a>
                     @endif
@@ -48,8 +62,9 @@
                                                 $cliente = $tarea->columna->tablero->cliente ?? null;
                                             @endphp
                                             @if($cliente && $cliente->logo)
-                                                <img src="{{ asset('storage/' . $cliente->logo) }}" 
-                                                     alt="Logo" class="rounded-circle me-2" style="width: 30px; height: 30px; object-fit: cover;">
+                                                <img src="{{ asset('storage/' . $cliente->logo) }}"
+                                                     alt="Logo" class="rounded-circle me-2"
+                                                     style="width: 30px; height: 30px; object-fit: cover;">
                                             @endif
                                             <span>{{ $cliente->nombre ?? 'N/A' }}</span>
                                         </div>
@@ -64,8 +79,19 @@
                                         {{ $tarea->fecha_de_entrega ? $tarea->fecha_de_entrega->format('d/m/Y') : 'N/A' }}
                                     </td>
                                     <td>
-                                        <span class="badge" style="background-color: {{ $tarea->estado->color ?? '#6c757d' }}; color: #fff;">
-                                            {{ $tarea->estado->nombre ?? 'Sin estado' }}
+                                        @php
+                                            $estadoNombre = $tarea->estado->nombre ?? 'Sin estado';
+                                            $color = '#6c757d'; // gris por defecto
+
+                                            if ($estadoNombre === 'Programada') {
+                                                $color = '#28a745'; // verde Bootstrap
+                                            } elseif ($estadoNombre === 'Finalizada') {
+                                                $color = '#6c757d'; // gris Bootstrap
+                                            }
+                                        @endphp
+
+                                        <span class="badge" style="background-color: {{ $color }}; color: #fff;">
+                                            {{ $estadoNombre }}
                                         </span>
                                     </td>
                                     <td class="text-center">
@@ -96,9 +122,11 @@
                 </div>
 
                 <!-- Paginación -->
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $tareas->appends(request()->query())->links('pagination::bootstrap-4') }}
-
+                <div class="d-flex justify-content-between align-items-center mt-4">
+                    <p class="text-muted mb-0">
+                        Mostrando {{ $tareas->firstItem() }} - {{ $tareas->lastItem() }} de {{ $tareas->total() }} resultados
+                    </p>
+                    {{ $tareas->links('pagination::bootstrap-4') }}
                 </div>
             </div>
         </div>

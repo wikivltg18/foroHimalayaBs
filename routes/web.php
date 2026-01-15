@@ -28,6 +28,7 @@ use App\Http\Controllers\EstadoTableroServicioController;
 use App\Http\Controllers\FasesServicioInstanciaController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Configuracion\ServiciosConfigController;
+use App\Http\Controllers\ConsolidadoController;
 
 Route::get('/', function () {
     return view('auth.login');
@@ -36,6 +37,12 @@ Route::get('/', function () {
 Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+//__/CONSUMOS/__//
+
+Route::middleware(['auth'])
+    ->get('/servicios/{servicio}/consolidado', [ConsolidadoController::class, 'index'])
+    ->name('servicios.consolidado.index');
 
 
 //__/FORO/__//

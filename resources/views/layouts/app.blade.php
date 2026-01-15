@@ -89,21 +89,26 @@
                                                 <a href="{{ url('/dashboard') }}"
                                                     class="no-arrow dropdown-toggle  text-muted text-decoration-none"><span
                                                         class="micon me-2 icon-Foro-1"></span>Foro</a>
-                                                <!-- Submenús: Áreas, Servicios, Roles -->
+                                                <!-- Submenús: Áreas dinámicas -->
                                                 <ul class="submenu">
-                                                    <li><a href="{{ url('/foro') }}"
-                                                            class="text-muted text-decoration-none">Diseño</a></li>
-                                                    <li><a href="{{ url('/foro') }}"
-                                                            class="text-muted text-decoration-none">Contenido</a></li>
-                                                    <li><a href="{{ url('/foro') }}"
-                                                            class="text-muted text-decoration-none">Digital
-                                                            Performance</a></li>
-                                                    <li><a href="{{ url('/foro') }}"
-                                                            class="text-muted text-decoration-none">Desarrollo</a></li>
-                                                    <li><a href="{{ url('/foro') }}"
-                                                            class="text-muted text-decoration-none">Creatividad</a></li>
-                                                    <li><a href="{{ url('/foro') }}"
-                                                            class="text-muted text-decoration-none">Estraregia</a></li>
+                                                    @php
+                                                        $currentUser = auth()->user();
+                                                        $areasMenu = [];
+                                                        if ($currentUser->hasRole(['Administrador', 'Superadministrador'])) {
+                                                            $areasMenu = \App\Models\Area::orderBy('nombre')->get();
+                                                        } elseif ($currentUser->id_area) {
+                                                            $areasMenu = \App\Models\Area::where('id', $currentUser->id_area)->get();
+                                                        }
+                                                    @endphp
+                                                    
+                                                    @foreach($areasMenu as $area)
+                                                        <li>
+                                                            <a href="{{ route('foro.index', ['area_id' => $area->id]) }}"
+                                                               class="text-muted text-decoration-none">
+                                                                {{ $area->nombre }}
+                                                            </a>
+                                                        </li>
+                                                    @endforeach
                                                 </ul>
                                             </li>
                                             <!-- Opción: Analitica -->
