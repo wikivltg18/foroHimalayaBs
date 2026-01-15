@@ -22,7 +22,10 @@ class GoogleCalendarService
         $client = new Google_Client();
         $client->setClientId($clientId);
         $client->setClientSecret($clientSecret);
-        $client->setRedirectUri(config('services.google.redirect_uri'));
+        
+        $redirectUri = config('services.google.redirect_uri') ?: route('google.callback');
+        $client->setRedirectUri($redirectUri);
+
         $client->setAccessType('offline');
         $client->setScopes(['https://www.googleapis.com/auth/calendar']);
 

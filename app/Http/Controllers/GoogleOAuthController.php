@@ -11,43 +11,35 @@ use App\Models\UserGoogleAccount;
 class GoogleOAuthController extends Controller
 {
     private function client(): \Google_Client
-{
-    $c = new \Google_Client();
-    $c->setClientId(config('services.google.client_id'));
-    $c->setClientSecret(config('services.google.client_secret'));
-    $c->setRedirectUri(config('services.google.redirect_uri'));
-    $c->setAccessType('offline'); // para refresh_token
-    $c->setIncludeGrantedScopes(true);
-    $c->setPrompt('consent select_account'); // fuerza consentimiento y selección de cuenta
-    $c->setScopes([
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/userinfo.email',
-    ]);
-    return $c;
-}
+    {
+        $c = new \Google_Client();
+        $c->setClientId(config('services.google.client_id'));
+        $c->setClientSecret(config('services.google.client_secret'));
+        
+        // Determinar el redirect URI: Prioridad .env -> Prioridad config -> Fallback route()
+        $redirectUri = config('services.google.redirect_uri') ?: route('google.callback');
+        $c->setRedirectUri($redirectUri);
 
-public function redirect()
-{
-    $client = $this->client();
-
-    // Asegurar que el cliente use el valor actual de .env (evita inconsistencias con variables de entorno del servidor)
-    $force = env('GOOGLE_FORCE_REDIRECT_URI');
-    if ($force) {
-        $client->setRedirectUri($force);
-        Log::info('Forcing GOOGLE_FORCE_REDIRECT_URI: ' . $force);
-    } else {
-        $client->setRedirectUri(env('GOOGLE_REDIRECT_URI'));
-        Log::info('Forcing GOOGLE_REDIRECT_URI: ' . config('services.google.redirect_uri'));
+        $c->setAccessType('offline'); // para refresh_token
+        $c->setIncludeGrantedScopes(true);
+        $c->setPrompt('consent select_account'); // fuerza consentimiento y selección de cuenta
+        $c->setScopes([
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/userinfo.email',
+        ]);
+        return $c;
     }
 
-    $authUrl = $client->createAuthUrl();
+    public function redirect()
+    {
+        $client = $this->client();
 
-    // Registrar la URL de autorización para verificar el redirect_uri que genera la app
-    Log::info('Google OAuth URL: ' . $authUrl);
-    Log::info('Using GOOGLE_REDIRECT_URI: ' . config('services.google.redirect_uri'));
+        // Registrar la URL de autorización para verificar el redirect_uri que genera la app
+        Log::info('Google OAuth URL: ' . $client->createAuthUrl());
+        Log::info('Using Redirect URI: ' . $client->getRedirectUri());
 
-    return redirect($authUrl);
-}
+        return redirect($client->createAuthUrl());
+    }
 
 public function callback(Request $r)
 {
